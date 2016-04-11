@@ -1,9 +1,11 @@
 import arrow
+
 import api
+
 
 def get_url(origins, destinations, mode, time):
     units = "metric"
-    apikey=api.apikey
+    apikey= api.apikey
 
     url = "https://maps.googleapis.com/maps/api/distancematrix/json?" \
           "&units={units}" \
@@ -25,8 +27,8 @@ def convert_hour_to_epoch(hour):
     """
     We always need to look up times in the future, so the time is always set
     for tomorrow. Time is floored to the hour, and then set
-    :param time:
-    :return:
+    :param: an int for the hour of the day in 24hr time.
+    :return: time in seconds from epoch to tomorrow at that hour's time.
     """
     return arrow.now()\
                 .floor('hour')\
