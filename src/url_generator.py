@@ -45,7 +45,9 @@ def get_urls(origins, destinations):
 
     for mode in modes:
         for hour in hours:
-            epochtime = convert_hour_to_epoch(hour)
-            urls.append(get_url(origins, destinations, mode, epochtime))
+            urls.append({"url": get_url(origins, destinations, mode, convert_hour_to_epoch(hour)),
+                         "mode": mode,
+                         "hour": hour})
 
-    return urls
+    return {"route": "{}-{}".format(origins, destinations),
+            "urls": urls}
