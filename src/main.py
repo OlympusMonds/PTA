@@ -1,21 +1,30 @@
 import sys
-from url_generator import get_urls
 from url_requester import request_urls
+from route_generator import generate_routes
 
+from Queue import Queue
+from threading import Thread
 
 def main():
-    origins = "-33.9042051,151.2483879"
-    destinations = "-33.9115947,151.2301782"
+    url_queue = Queue(maxsize=1000)
 
-    urls = get_urls(origins, destinations)
+    route_thread = Thread(target=generate_routes, args=(url_queue,))
+    url_request_thread = Thread(target=request_urls, args=(url_queue,))
 
-    print '\n'.join(urls)
+    route_thread.start()
+    url_request_thread.start()
 
-    data = request_urls(urls)
-
-    print data
+    print "All threads go!"
+    url_queue.join()
 
     return 0
 
+
 if __name__ == "__main__":
     sys.exit(main())
+
+
+
+
+
+

@@ -37,7 +37,7 @@ def convert_hour_to_epoch(hour):
                 .timestamp
 
 
-def get_urls(origins, destinations):
+def get_urls_for_route(origins, destinations):
     modes = ["transit", "driving"]
     hours = [6, 8, 12, 17, 21]
 
@@ -49,5 +49,5 @@ def get_urls(origins, destinations):
                          "mode": mode,
                          "hour": hour})
 
-    return {"route": "{}-{}".format(origins, destinations),
-            "urls": urls}
+    return {"route": "{}_{}".format(origins, destinations),
+            "details": urls}

@@ -1,18 +1,19 @@
 import requests
 import time
 
-def request_url(url):
 
-    r = requests.get(url)
+def request_urls(url_queue):
+    while True:
+        route, details = url_queue.get()
+        url = details["url"]
 
-    if r.status_code == 200:
-        return r.json()
+        r = requests.get(url)
 
+        if r.status_code == 200:
+            print r.json()
 
-def request_urls(urls):
-    data = {}
-    for url in urls:
-        data[url] = request_url(url)
-        time.sleep(0.4)
+        time.sleep(0.1)
 
-    return data
+        url_queue.task_done()
+
+    return None
