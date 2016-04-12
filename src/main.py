@@ -15,7 +15,6 @@ def main():
     url_request_thread.start()
 
     print "All threads go!"
-    url_queue.join()
 
     return 0
 

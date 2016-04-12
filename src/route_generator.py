@@ -10,15 +10,19 @@ def generate_routes(url_queue):
     deltalon = maxlon - minlon
 
     routes = set()
+    route_resolution = 4
 
     while True:
-        new_o_lat = minlat + random.random() * deltalat
-        new_o_lon = minlon + random.random() * deltalon
+        if len(routes) > 10e6:  # Ensure routes doesn't get too big..
+            routes = set()
+
+        new_o_lat = round(minlat + random.random() * deltalat, route_resolution)
+        new_o_lon = round(minlon + random.random() * deltalon, route_resolution)
         origin = "{},{}".format(new_o_lat, new_o_lon)
 
         for _ in range(10):
-            new_d_lat = minlat + random.random() * deltalat
-            new_d_lon = minlon + random.random() * deltalon
+            new_d_lat = round(minlat + random.random() * deltalat, route_resolution)
+            new_d_lon = round(minlon + random.random() * deltalon, route_resolution)
             destination = "{},{}".format(new_d_lat, new_d_lon)
 
             data = get_urls_for_route(origin, destination)
