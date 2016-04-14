@@ -48,6 +48,8 @@ def get_urls_for_route(origins, destinations):
             urls.append({"url": get_url(origins, destinations, mode, convert_hour_to_epoch(hour)),
                          "mode": mode,
                          "hour": hour})
+            if mode == "driving":
+                break  # looks like asking for driving times in the future makes no difference
 
     return {"route": "{}_{}".format(origins, destinations),
             "details": urls}

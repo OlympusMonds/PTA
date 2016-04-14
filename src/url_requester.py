@@ -1,14 +1,19 @@
 import requests
 import time
+import pony.orm as pny
+from database import Origin, Destination
 
 
-def request_urls(url_queue):
+def request_urls(url_queue, db):
     total_requests_today = 0
+    day_in_sec = 3600*24
+    max_daily_requests = 2500
+    request_rate = day_in_sec / max_daily_requests
 
     while True:
-        if total_requests_today >= 1500:
+        if total_requests_today >= max_daily_requests:
             print("Exceeded daily request limit. Sleeping until tomorrow.")
-            time.sleep(3600*24)
+            time.sleep(day_in_sec)
             total_requests_today = 0
 
         route, details = url_queue.get()
@@ -18,11 +23,45 @@ def request_urls(url_queue):
         r = requests.get(url)
 
         if r.status_code == 200:
-            print r.json()
-        print
-        time.sleep(0.1)
+            duration, distance = process_response(r.json())
 
-        url_queue.task_done()
+        origin, dest = route.split("_")
+        with pny.db_session:
+            print("DB session")
+            if not Origin.exists(location = origin):
+                o = Origin(location = origin)
+            else:
+                print("Already exists!")
+                o = Origin.get(location = origin)
+                print o.destinations
+
+            d = Destination(location = dest,
+                            mode = details["mode"],
+                            time = details["hour"],
+                            duration = duration,
+                            distance = distance,
+                            origin = o)
+
+            o.destinations.add(d)
+        print("END DB session")
+
+
+        time.sleep(request_rate)
+
         total_requests_today += 1
+        url_queue.task_done()
 
-    return None
+
+def process_response(data):
+    duration = -1
+    distance = -1
+    try:
+        duration = data["rows"][0]["elements"][0]["duration"]["value"]
+        distance = data["rows"][0]["elements"][0]["distance"]["value"]
+    except (KeyError, IndexError):
+        print("Error in processing response!")
+        print(data)
+        pass
+
+    return duration, distance
+
