@@ -27,13 +27,10 @@ def request_urls(url_queue, db):
 
         origin, dest = route.split("_")
         with pny.db_session:
-            print("DB session")
             if not Origin.exists(location = origin):
                 o = Origin(location = origin)
             else:
-                print("Already exists!")
                 o = Origin.get(location = origin)
-                print o.destinations
 
             d = Destination(location = dest,
                             mode = details["mode"],
@@ -43,8 +40,6 @@ def request_urls(url_queue, db):
                             origin = o)
 
             o.destinations.add(d)
-        print("END DB session")
-
 
         time.sleep(request_rate)
 
