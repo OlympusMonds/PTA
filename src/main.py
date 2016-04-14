@@ -12,7 +12,7 @@ def main():
     db = init()
 
     route_thread = Thread(target=generate_routes, args=(url_queue,))
-    url_request_thread = Thread(target=request_urls, args=(url_queue, db))
+    url_request_thread = Thread(target=request_urls, args=(url_queue))
 
     route_thread.start()
     url_request_thread.start()

@@ -4,7 +4,7 @@ import pony.orm as pny
 from database import Origin, Destination
 
 
-def request_urls(url_queue, db):
+def request_urls(url_queue):
     total_requests_today = 0
     day_in_sec = 3600*24
     max_daily_requests = 2500
@@ -25,21 +25,21 @@ def request_urls(url_queue, db):
         if r.status_code == 200:
             duration, distance = process_response(r.json())
 
-        origin, dest = route.split("_")
-        with pny.db_session:
-            if not Origin.exists(location = origin):
-                o = Origin(location = origin)
-            else:
-                o = Origin.get(location = origin)
+            origin, dest = route.split("_")
+            with pny.db_session:
+                if not Origin.exists(location = origin):
+                    o = Origin(location = origin)
+                else:
+                    o = Origin.get(location = origin)
 
-            d = Destination(location = dest,
-                            mode = details["mode"],
-                            time = details["hour"],
-                            duration = duration,
-                            distance = distance,
-                            origin = o)
+                d = Destination(location = dest,
+                                mode = details["mode"],
+                                time = details["hour"],
+                                duration = duration,
+                                distance = distance,
+                                origin = o)
 
-            o.destinations.add(d)
+                o.destinations.add(d)
 
         time.sleep(request_rate)
 
