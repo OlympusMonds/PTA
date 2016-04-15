@@ -5,7 +5,7 @@ from pony.orm import Database, Required, Set, PrimaryKey, sql_debug
 db = Database("sqlite", "database.sqlite", create_db=True)
 
 def init():
-    sql_debug(True)
+    sql_debug(False)
     db.generate_mapping(create_tables=True)
 
 
@@ -15,9 +15,16 @@ class Origin(db.Entity):
 
 
 class Destination(db.Entity):
+    id = PrimaryKey(int, auto=True)
     location = Required(str)
+    origin = Required(Origin)
+    trips = Set("Trip")
+
+
+class Trip(db.Entity):
+    id = PrimaryKey(int, auto=True)
     time = Required(int)
     mode = Required(str)
-    duration = Required(int)
-    distance = Required(Decimal)
-    origin = Required(Origin)
+    distance = Required(int)
+    duration = Required(Decimal)
+    destination = Required(Destination)

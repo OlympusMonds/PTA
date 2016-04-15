@@ -1,7 +1,7 @@
 import requests
 import time
 import pony.orm as pny
-from database import Origin, Destination
+from database import Origin, Destination, Trip
 
 
 def request_urls(url_queue):
@@ -32,14 +32,18 @@ def request_urls(url_queue):
                 else:
                     o = Origin.get(location = origin)
 
-                d = Destination(location = dest,
-                                mode = details["mode"],
-                                time = details["hour"],
-                                duration = duration,
-                                distance = distance,
-                                origin = o)
+                if not Destination.exists(location = dest):
+                    d = Destination(location = dest,
+                                    origin = o)
+                else:
+                    d = Destination.get(location = dest)
 
-                o.destinations.add(d)
+                t = Trip(mode = details["mode"],
+                         time = details["hour"],
+                         duration = duration,
+                         distance = distance,
+                         destination = d)
+                d.trips.add(t)
 
         time.sleep(request_rate)
 
