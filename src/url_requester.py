@@ -34,13 +34,13 @@ def request_urls(url_queue):
                 print("Bad response from Google.")
 
         except ZeroResultsError:
-            print("An error has occurred; result is skipped.")
+            print("No results for that route; result skipped.")
             bad_routes.add(route)
             if len(bad_routes) > 100e3:
                 bad_routes.clear()  # Make sure things don't get out of hand.
         except ValueError:
             print("Returned data doesn't match expected data structure;"
-                  " result is skipped.")
+                  " result skipped.")
         finally:
             """
             No matter what happens, we still need to know how many requests have been
