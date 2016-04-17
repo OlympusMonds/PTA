@@ -12,7 +12,7 @@ def get_url(origins, destinations, mode, time):
           "&destinations={destinations}" \
           "&mode={mode}" \
           "&departure_time={time}" \
-          "&{apikey}".format(units=units,
+          "&key={apikey}".format(units=units,
                              origins=origins,
                              destinations=destinations,
                              mode=mode,

@@ -11,8 +11,9 @@ def main():
     bounding_box = {"minlat": -33.846351, "minlon": 151.151910,
                     "maxlat": -33.938762, "maxlon": 151.254523}
     map_resolution = 3  # About 1 km
+    max_daily_requests = 100000  # Woo! free trial!
 
-    url_queue = Queue(maxsize=10)   # If you make this too large, the times used can be in the past!
+    url_queue = Queue(maxsize=100)   # If you make this too large, the times used can be in the past!
 
     db = init()
 
@@ -21,7 +22,7 @@ def main():
     # call for a route just before it requests? Having the request threaded is OK,
     # particularly if I get more than 1 API key.
     route_thread = Thread(target=generate_routes, args=(bounding_box, map_resolution, url_queue,))
-    url_request_thread = Thread(target=request_urls, args=(url_queue,))
+    url_request_thread = Thread(target=request_urls, args=(max_daily_requests, url_queue,))
 
     route_thread.start()
     url_request_thread.start()

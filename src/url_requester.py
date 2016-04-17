@@ -5,17 +5,17 @@ from database import Origin, Destination, Trip
 from PTEexceptions import ZeroResultsError
 
 
-def request_urls(url_queue):
+def request_urls(max_daily_requests, url_queue):
     """
     Request the route from Google at a steady pace that does not exceed the usage
     limits. If the data is OK, save it to the database.
+    :param max_daily_requests: int of how many requests we're allowed to do per day.
     :param url_queue: The queue of URLs to process
     :return: None, the while loop should run forever.
     """
 
     total_requests_today = 0
     day_in_sec = 3600*24
-    max_daily_requests = 2500
     request_rate = day_in_sec / max_daily_requests
 
     bad_routes = set()

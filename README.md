@@ -36,12 +36,17 @@ Current issues
 To use Google's distance matrix API for free, it is limited to 2500 
 requests a day. Currently each route takes 6 requests (1 driving, 5 
 public transport times), and each origin gets 10 routes generated. This
-means about 41 routes per day, which is pretty slow going. Oh well. 
+means about 41 routes per day, which is pretty slow going. Oh well.
+ 
+UPDATE: I'm now on the free 60 day trial, so it's much faster now.
 
 Can I run this too?
 -------------------
 Yes, you just need to make a file in the src directory called "api.py",
-and in there put your Google Maps Distance Matrix API key.
+and in there put your Google Maps Distance Matrix API key. It should 
+look like:
+    
+    apikey="AJAH<your actual key>SJKAJ"
 
 
 Dependencies
