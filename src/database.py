@@ -2,11 +2,15 @@ from decimal import Decimal
 from pony.orm import Database, Required, Set, PrimaryKey, sql_debug
 
 # What is up with the scoping of this..
-db = Database("sqlite", "database.sqlite", create_db=True)
+db = Database("sqlite", "database.sqlite", create_db=False)
 
 
 def init():
     sql_debug(False)
+    db.generate_mapping(check_tables=True, create_tables=False)
+
+
+def create():
     db.generate_mapping(create_tables=True)
 
 

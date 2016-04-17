@@ -5,7 +5,7 @@ vs. transit for various times. It is also a prototype for the website that
 will no double come later.
 """
 
-import sys
+import sys, os
 import pony.orm as pny
 from database import Origin, Destination
 from database import init
@@ -27,6 +27,8 @@ def vis():
         origins = pny.select(o for o in Origin)[:]
 
         for o in origins:
+            fig = plt.figure()
+
             lat, lon = o.location.split(",")
             plt.scatter(lon, lat, c="black", s=100)
 
@@ -45,14 +47,15 @@ def vis():
 
                 transit_dur /= count
 
-                print driving_dur, transit_dur, driving_dur/transit_dur
                 colorVal = scalarMap.to_rgba(1 - (driving_dur/transit_dur))
 
                 plt.scatter(dlon, dlat, edgecolors="none", s=200, c=colorVal)
 
             plt.xlim(minlon, maxlon)
             plt.ylim(minlat, maxlat)
-            plt.show()
+
+            plt.savefig(os.path.join(os.getcwd(), "maps", "origin_{}_{}.png".format(lat, lon)))
+            plt.close()
 
 
 if __name__ == "__main__":
