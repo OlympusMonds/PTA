@@ -66,3 +66,10 @@ Code analysis
 [![Code Issues](https://www.quantifiedcode.com/api/v1/project/26af7dbad1ab4ded84a340bbfe8e1927/badge.svg)](https://www.quantifiedcode.com/app/project/26af7dbad1ab4ded84a340bbfe8e1927)
 
 
+Things to do
+------------
+
+* Batch requests to Google. Currently it's 1 request for 1 route, but
+they support up to 100. Need to balance the time though.
+* Fix up visualiser.
+* Think about how to do web vis.
