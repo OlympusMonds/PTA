@@ -16,8 +16,11 @@ import matplotlib.cm as cmx
 
 
 def vis():
+    minlat, minlon = -33.846351, 151.151910
+    maxlat, maxlon = -33.938762, 151.254523
+
     jet = cm = plt.get_cmap('jet')
-    cNorm  = colors.Normalize(vmin=0, vmax=1)
+    cNorm = colors.Normalize(vmin=0, vmax=1)
     scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=jet)
 
     with pny.db_session:
@@ -29,7 +32,6 @@ def vis():
 
             for d in o.destinations:
                 dlat, dlon = d.location.split(",")
-
 
                 count = 0
                 driving_dur = 0
@@ -48,6 +50,8 @@ def vis():
 
                 plt.scatter(dlon, dlat, edgecolors="none", s=200, c=colorVal)
 
+            plt.xlim(minlon, maxlon)
+            plt.ylim(minlat, maxlat)
             plt.show()
 
 
