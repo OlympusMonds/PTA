@@ -24,6 +24,10 @@ def request_urls(url_queue):
         route, details = url_queue.get()
         print(total_requests_today, details["url"])
 
+        if route in bad_routes:
+            print("Bad route; route skipped.")
+            continue
+
         try:
             r = requests.get(details["url"])
 
@@ -34,13 +38,18 @@ def request_urls(url_queue):
                 print("Bad response from Google.")
 
         except ZeroResultsError:
+            """
+            Chances are that if we get a ZeroResultsError, it's because the route generator
+            put the origin or the destination in a body of water or something. Since each
+            route generates 6 or so requests, we need to remember bad ones, so we don't re-
+            request them.
+            """
             print("No results for that route; result skipped.")
             bad_routes.add(route)
             if len(bad_routes) > 100e3:
                 bad_routes.clear()  # Make sure things don't get out of hand.
         except ValueError:
-            print("Returned data doesn't match expected data structure;"
-                  " result skipped.")
+            print("Returned data doesn't match expected data structure; result skipped.")
         finally:
             """
             No matter what happens, we still need to know how many requests have been
