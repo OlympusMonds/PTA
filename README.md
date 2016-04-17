@@ -47,15 +47,17 @@ and in there put your Google Maps Distance Matrix API key.
 Dependencies
 ------------
 For the server aspect (main.py), you need:
-    * arrow	0.7.0	0.7.0
-    * pony	0.6.5	0.6.5
-    * requests	2.9.1	2.9.1
-    * plus whatever they depend on
+
+* arrow	0.7.0	0.7.0
+* pony	0.6.5	0.6.5
+* requests	2.9.1	2.9.1
+* plus whatever they depend on
     
 For the visualiser (visualise_routes.py), you need:
-    * pony	0.6.5	0.6.5
-    * matplotlib 
-    * plus whatever they depend on
+
+* pony	0.6.5	0.6.5
+* matplotlib 
+* plus whatever they depend on
     
 The visualiser is pretty dodgey at the moment, just used for debugging.
 
