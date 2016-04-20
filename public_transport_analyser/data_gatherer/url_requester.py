@@ -1,8 +1,10 @@
-import requests
 import time
+
 import pony.orm as pny
-from database import Origin, Destination, Trip
+import requests
+
 from PTEexceptions import ZeroResultsError
+from public_transport_analyser.database.database import Origin, Destination, Trip
 
 
 def request_urls(max_daily_requests, url_queue):

@@ -1,10 +1,10 @@
 import sys
-from url_requester import request_urls
-from route_generator import generate_routes
-from database import init
-
 from Queue import Queue
 from threading import Thread
+
+from public_transport_analyser.database.database import init
+from route_generator import generate_routes
+from url_requester import request_urls
 
 
 def main():
