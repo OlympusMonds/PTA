@@ -11,9 +11,9 @@ def main():
     bounding_box = {"minlat": -33.846351, "minlon": 151.151910,
                     "maxlat": -33.938762, "maxlon": 151.254523}
     map_resolution = 3  # About 1 km
-    max_daily_requests = 100000  # Woo! free trial!
+    max_daily_requests = 2500
 
-    url_queue = Queue(maxsize=100)   # If you make this too large, the times used can be in the past!
+    url_queue = Queue(maxsize=10)   # If you make this too large, the times used can be in the past!
 
     db = init()
 

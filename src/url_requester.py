@@ -63,6 +63,7 @@ def request_urls(max_daily_requests, url_queue):
         if total_requests_today >= max_daily_requests:
             print("Exceeded daily request limit. Sleeping until tomorrow.")
             time.sleep(day_in_sec)
+            # TODO: This isn't what you want. You need to make this be "sleep for the rest of this day".
             total_requests_today = 0
 
 
