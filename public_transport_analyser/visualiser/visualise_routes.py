@@ -54,7 +54,7 @@ def vis():
             plt.xlim(minlon, maxlon)
             plt.ylim(minlat, maxlat)
 
-            plt.savefig(os.path.join(os.getcwd(), "maps", "origin_{}_{}.png".format(lat, lon)))
+            plt.savefig(os.path.join(os.getcwd(), "maps", "origin_{0}_{1}.png".format(lat, lon)))
             plt.close()
 
 

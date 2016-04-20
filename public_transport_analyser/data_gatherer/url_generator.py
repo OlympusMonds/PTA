@@ -50,5 +50,5 @@ def get_urls_for_route(origins, destinations):
             if mode == "driving":
                 break  # looks like asking for driving times in the future makes no difference
 
-    return {"route": "{}_{}".format(origins, destinations),
+    return {"route": "{0}_{1}".format(origins, destinations),
             "details": urls}
