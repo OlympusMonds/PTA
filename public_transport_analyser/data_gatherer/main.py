@@ -1,19 +1,16 @@
 import sys
-from Queue import Queue
+import queue
 from threading import Thread
 
 from public_transport_analyser.database.database import init
 from route_generator import generate_routes
 from url_requester import request_urls
+from config import bounding_box, map_resolution, max_daily_requests
 
 
 def main():
-    bounding_box = {"minlat": -33.846351, "minlon": 151.151910,
-                    "maxlat": -33.938762, "maxlon": 151.254523}
-    map_resolution = 3  # About 1 km
-    max_daily_requests = 2500
 
-    url_queue = Queue(maxsize=10)   # If you make this too large, the times used can be in the past!
+    url_queue = queue.Queue(maxsize=10)   # If you make this too large, the times used can be in the past!
 
     db = init()
 
@@ -24,10 +21,11 @@ def main():
     route_thread = Thread(target=generate_routes, args=(bounding_box, map_resolution, url_queue,))
     url_request_thread = Thread(target=request_urls, args=(max_daily_requests, url_queue,))
 
+    # TODO: Implement logging
+    print("Starting threads... ", end="")
     route_thread.start()
     url_request_thread.start()
-
-    print "All threads go!"
+    print("done.")
 
     return 0
 
