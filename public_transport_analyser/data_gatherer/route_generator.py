@@ -14,13 +14,13 @@ def generate_routes(bounding_box, map_resolution, url_queue):
         # map resolution.
         new_o_lat = round(minlat + random.random() * deltalat, map_resolution)
         new_o_lon = round(minlon + random.random() * deltalon, map_resolution)
-        origin = "{},{}".format(new_o_lat, new_o_lon)
+        origin = "{0},{1}".format(new_o_lat, new_o_lon)
 
         for _ in range(10):
             # Generate 10 random destinations in the same way from the origin.
             new_d_lat = round(minlat + random.random() * deltalat, map_resolution)
             new_d_lon = round(minlon + random.random() * deltalon, map_resolution)
-            destination = "{},{}".format(new_d_lat, new_d_lon)
+            destination = "{0},{1}".format(new_d_lat, new_d_lon)
 
             data = get_urls_for_route(origin, destination)  # make a URL for the route
 

@@ -86,7 +86,7 @@ def process_response(data):
         distance = data["rows"][0]["elements"][0]["distance"]["value"]
 
     except (KeyError, IndexError, ValueError) as e:
-        raise ValueError("Exception: {}".format(e))
+        raise ValueError("Exception: {0}".format(e))
 
     return duration, distance
 
