@@ -3,8 +3,8 @@ import time
 import pony.orm as pny
 import requests
 
-from PTEexceptions import ZeroResultsError
 from public_transport_analyser.database.database import Origin, Destination, Trip
+from PTEexceptions import ZeroResultsError
 
 
 def request_urls(max_daily_requests, url_queue):
@@ -27,24 +27,27 @@ def request_urls(max_daily_requests, url_queue):
         print(total_requests_today, details["url"])
 
         if route in bad_routes:
-            print("Bad route; route skipped.")
+            print("Bad route; skipped.")
+            url_queue.task_done()
             continue
 
         try:
             r = requests.get(details["url"])
+            if r.status_code != 200:
+                print("Bad response (response = {0}); skipped.".format(r.status_code))
+                url_queue.task_done()
+                continue
+        except ConnectionError as ce:
+            print("Connection error. Computer says:\n{0}".format(ce))
 
-            if r.status_code == 200:
-                duration, distance = process_response(r.json())
-                save_to_db(route, details, duration, distance)
-            else:
-                print("Bad response from Google.")
+        try:
+            duration, distance = process_response(r.json())
+            save_to_db(route, details, duration, distance)
 
         except ZeroResultsError:
             """
-            Chances are that if we get a ZeroResultsError, it's because the route generator
-            put the origin or the destination in a body of water or something. Since each
-            route generates 6 or so requests, we need to remember bad ones, so we don't re-
-            request them.
+            ZeroResultsError typically means the route generator put the origin or the destination
+            in a body of water or something.
             """
             print("No results for that route; result skipped.")
             bad_routes.add(route)
@@ -52,15 +55,10 @@ def request_urls(max_daily_requests, url_queue):
                 bad_routes.clear()  # Make sure things don't get out of hand.
         except ValueError:
             print("Returned data doesn't match expected data structure; result skipped.")
-        finally:
-            """
-            No matter what happens, we still need to know how many requests have been
-            done, we still need to not spam Google with requests, and we need to tell
-            the queue we're done.
-            """
-            total_requests_today += 1
-            url_queue.task_done()
-            time.sleep(request_rate)
+
+        total_requests_today += 1
+        url_queue.task_done()
+        time.sleep(request_rate)
 
         if total_requests_today >= max_daily_requests:
             print("Exceeded daily request limit. Sleeping until tomorrow.")
