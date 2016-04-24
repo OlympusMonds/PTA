@@ -1,5 +1,5 @@
 import arrow
-import api
+from public_transport_analyser.data_gatherer import api
 
 
 def get_url(origin, destination, mode, time):

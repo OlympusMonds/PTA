@@ -35,11 +35,11 @@ def process_response(reqjson):
     :return: list(duration, distance) of the particular trip.
     """
     try:
-        if data["rows"][0]["elements"][0]["status"] == "ZERO_RESULTS":
+        if reqjson["rows"][0]["elements"][0]["status"] == "ZERO_RESULTS":
             raise ZeroResultsError("No results found")
 
-        duration = data["rows"][0]["elements"][0]["duration"]["value"]
-        distance = data["rows"][0]["elements"][0]["distance"]["value"]
+        duration = reqjson["rows"][0]["elements"][0]["duration"]["value"]
+        distance = reqjson["rows"][0]["elements"][0]["distance"]["value"]
 
     except (KeyError, IndexError) as e:
         raise ValueError("Exception: {0}".format(e))
@@ -57,7 +57,6 @@ def save_to_db(route_info, duration, distance):
     :return: none
     """
     origin, dest = route_info["route"].split("_")
-    print("  DB: saving {}.".format(route_info["route"]))
     with pny.db_session:
         """
         Fetch the origin and dest from the DB, or create if they don't
@@ -80,3 +79,8 @@ def save_to_db(route_info, duration, distance):
                  distance = distance,
                  destination = d)
         d.trips.add(t)
+        print("  DB: saved route: {}, mode: {}, time: {}, duration: {}, distance: {}.".format(route_info["route"],
+                                                                                              route_info["mode"],
+                                                                                              route_info["hour"],
+                                                                                              duration,
+                                                                                              distance))
