@@ -3,28 +3,31 @@ import queue
 from threading import Thread
 
 from public_transport_analyser.database.database import init
-from route_generator import generate_routes
-from url_requester import request_urls
-from config import bounding_box, map_resolution, max_daily_requests
+from public_transport_analyser.data_gatherer.route_generator import generate_routes
+from public_transport_analyser.data_gatherer.url_requester import request_urls
+from public_transport_analyser.data_gatherer.data_processor import process_data
+from public_transport_analyser.data_gatherer.config import bounding_box, map_resolution, max_daily_requests, queue_size
 
 
 def main():
 
-    url_queue = queue.Queue(maxsize=10)   # If you make this too large, the times used can be in the past!
+    url_queue = queue.Queue(maxsize=queue_size)
+    data_queue = queue.Queue(maxsize=queue_size*10)
 
     db = init()
 
-    # Why did I make these things both threaded? It works, but it just seems unneeded
-    # now... Particularly the route thread - why couldn't the url request thread just
-    # call for a route just before it requests? Having the request threaded is OK,
-    # particularly if I get more than 1 API key.
+    bad_routes = set()
+
+    # TODO: Migrate the route thread into a simple function call within the url thread.
     route_thread = Thread(target=generate_routes, args=(bounding_box, map_resolution, url_queue,))
-    url_request_thread = Thread(target=request_urls, args=(max_daily_requests, url_queue,))
+    url_request_thread = Thread(target=request_urls, args=(max_daily_requests, bad_routes, url_queue, data_queue))
+    data_processing_thread = Thread(target=process_data, args=(bad_routes, data_queue,))
 
     # TODO: Implement logging
     print("Starting threads... ", end="")
     route_thread.start()
     url_request_thread.start()
+    data_processing_thread.start()
     print("done.")
 
     return 0

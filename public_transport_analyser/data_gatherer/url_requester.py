@@ -1,13 +1,8 @@
 import time
-
-import pony.orm as pny
 import requests
 
-from public_transport_analyser.database.database import Origin, Destination, Trip
-from PTEexceptions import ZeroResultsError
 
-
-def request_urls(max_daily_requests, url_queue):
+def request_urls(max_daily_requests, bad_routes, url_queue, data_queue):
     """
     Request the route from Google at a steady pace that does not exceed the usage
     limits. If the data is OK, save it to the database.
@@ -20,105 +15,46 @@ def request_urls(max_daily_requests, url_queue):
     day_in_sec = 3600*24
     request_rate = day_in_sec / max_daily_requests
 
-    bad_routes = set()
-
     while True:
-        route, details = url_queue.get()
-        print(total_requests_today, details["url"])
+        route_info = url_queue.get()
+        print(total_requests_today, route_info["url"])
 
-        if route in bad_routes:
+        need_to_sleep = True
+
+        if route_info["route"] not in bad_routes:
+            try:
+                r = requests.get(route_info["url"])
+                if r.status_code == 200:
+                    reqjson = r.json()
+
+                    if reqjson["status"] == "OK":
+                        data_queue.put((route_info, reqjson))
+
+                    elif reqjson["status"] == "OVER_QUERY_LIMIT":
+                        total_requests_today = max_daily_requests + 1  # we need to stop now
+                        print("Google says limit has been reached")
+                    else:
+                        print("Unknown response status: {0}; skipped".format(reqjson["status"]))
+                else:
+                    print("Bad response (response = {0}); skipped.".format(r.status_code))
+
+            except ConnectionError as ce:
+                print("Connection error. Computer says:\n{0}".format(ce))
+                need_to_sleep = False
+            except Exception as e:
+                print("Unknown exception caught. Computer says:\n{0}\nskipped.".format(e))
+
+        else:
             print("Bad route; skipped.")
-            url_queue.task_done()
-            continue
+            need_to_sleep = False
 
-        try:
-            r = requests.get(details["url"])
-            if r.status_code != 200:
-                print("Bad response (response = {0}); skipped.".format(r.status_code))
-                url_queue.task_done()
-                continue
-        except ConnectionError as ce:
-            print("Connection error. Computer says:\n{0}".format(ce))
-
-        try:
-            duration, distance = process_response(r.json())
-            save_to_db(route, details, duration, distance)
-
-        except ZeroResultsError:
-            """
-            ZeroResultsError typically means the route generator put the origin or the destination
-            in a body of water or something.
-            """
-            print("No results for that route; result skipped.")
-            bad_routes.add(route)
-            if len(bad_routes) > 100e3:
-                bad_routes.clear()  # Make sure things don't get out of hand.
-        except ValueError:
-            print("Returned data doesn't match expected data structure; result skipped.")
-
-        total_requests_today += 1
         url_queue.task_done()
-        time.sleep(request_rate)
+
+        if need_to_sleep:
+            total_requests_today += 1
+            time.sleep(request_rate)
 
         if total_requests_today >= max_daily_requests:
             print("Exceeded daily request limit. Sleeping until tomorrow.")
-            time.sleep(day_in_sec)
-            # TODO: This isn't what you want. You need to make this be "sleep for the rest of this day".
+            time.sleep(day_in_sec)  # TODO: This isn't what you want. You need to make this be "sleep for the rest of this day".
             total_requests_today = 0
-
-
-def process_response(data):
-    """
-    Extract/process the data returned in the request to return the needed information.
-    :param data: the JSON data of the request
-    :return: list(duration, distance) of the particular trip.
-    """
-    try:
-        if data["status"] != "OK":
-            raise ValueError("Request status not OK")
-
-        if data["rows"][0]["elements"][0]["status"] == "ZERO_RESULTS":
-            raise ZeroResultsError("No results found")
-
-        duration = data["rows"][0]["elements"][0]["duration"]["value"]
-        distance = data["rows"][0]["elements"][0]["distance"]["value"]
-
-    except (KeyError, IndexError, ValueError) as e:
-        raise ValueError("Exception: {0}".format(e))
-
-    return duration, distance
-
-
-def save_to_db(route, details, duration, distance):
-    """
-    Save the route info to the DB. Search for existing DB entries first, and
-    add to them if needed, otherwise generate new entries.
-    :param route: string of the origin and destination, joined with a "_"
-    :param details: dict of details about the trip - mode, what time, URL, etc.
-    :param duration: time in seconds of the trip
-    :param distance: distance in meters of the trip
-    :return: none
-    """
-    origin, dest = route.split("_")
-    with pny.db_session:
-        """
-        Fetch the origin and dest from the DB, or create if they don't
-        exist. Once obtained, make a new trip between them storing the
-        results.
-        """
-        if Origin.exists(location = origin):
-            o = Origin.get(location = origin)
-        else:
-            o = Origin(location = origin)
-
-        if Destination.exists(location = dest):
-            d = Destination.get(location = dest)
-        else:
-            d = Destination(location = dest, origin = o)
-
-        t = Trip(mode = details["mode"],
-                 time = details["hour"],
-                 duration = duration,
-                 distance = distance,
-                 destination = d)
-        d.trips.add(t)

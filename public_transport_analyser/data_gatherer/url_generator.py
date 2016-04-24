@@ -2,7 +2,7 @@ import arrow
 import api
 
 
-def get_url(origins, destinations, mode, time):
+def get_url(origin, destination, mode, time):
     units = "metric"
     apikey= api.apikey
 
@@ -13,11 +13,11 @@ def get_url(origins, destinations, mode, time):
           "&mode={mode}" \
           "&departure_time={time}" \
           "&key={apikey}".format(units=units,
-                             origins=origins,
-                             destinations=destinations,
-                             mode=mode,
-                             time=time,
-                             apikey=apikey)
+                                 origins=origin,  # Note the plural change
+                                 destinations=destination,
+                                 mode=mode,
+                                 time=time,
+                                 apikey=apikey)
 
     return url
 
@@ -36,19 +36,28 @@ def convert_hour_to_epoch(hour):
                 .timestamp
 
 
-def get_urls_for_route(origins, destinations):
+def get_info_for_route(route):
+    """
+
+    :param route: string that looks like "<origin>_<destination>", where both
+    origin and destination look like "<lat>,<lon>".
+    :return:
+    """
+    origin, destination = route.split("_")
+
     modes = ["transit", "driving"]
     hours = [6, 8, 12, 17, 21]
 
-    urls = []
+    route_info = []
 
     for mode in modes:
         for hour in hours:
-            urls.append({"url": get_url(origins, destinations, mode, convert_hour_to_epoch(hour)),
-                         "mode": mode,
-                         "hour": hour})
+            route_info.append({"route": route,
+                               "url": get_url(origin, destination, mode, convert_hour_to_epoch(hour)),
+                               "mode": mode,
+                               "hour": hour})
+
             if mode == "driving":
                 break  # looks like asking for driving times in the future makes no difference
 
-    return {"route": "{0}_{1}".format(origins, destinations),
-            "details": urls}
+    return route_info

@@ -1,5 +1,5 @@
 import random
-from url_generator import get_urls_for_route
+from public_transport_analyser.data_gatherer.url_generator import get_info_for_route
 
 
 def generate_routes(bounding_box, map_resolution, url_queue):
@@ -22,7 +22,7 @@ def generate_routes(bounding_box, map_resolution, url_queue):
             new_d_lon = round(minlon + random.random() * deltalon, map_resolution)
             destination = "{0},{1}".format(new_d_lat, new_d_lon)
 
-            data = get_urls_for_route(origin, destination)  # make a URL for the route
+            route = "{0}_{1}".format(origin, destination)
 
-            for url in data["details"]:
-                url_queue.put([data["route"], url])
+            for ri in get_info_for_route(route):  # make a URL for the route:
+                url_queue.put(ri)
