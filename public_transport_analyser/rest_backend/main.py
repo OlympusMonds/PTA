@@ -2,6 +2,7 @@ import pony.orm as pny
 from flask import Flask, url_for, redirect
 import numpy as np
 from scipy.spatial import Voronoi
+import geojson
 
 from public_transport_analyser.database.database import Origin, init
 from public_transport_analyser.rest_backend.utils import voronoi_finite_polygons_2d
@@ -15,27 +16,20 @@ def index():
 
 
 def make_json():
-    # Use geojson package
+
     regions, vertices = get_data()
-    data = {"type": "FeatureCollection",
-            "features": []
-           }
+
+    features = []
 
     for r in regions:
-        feature = {"type": "Feature",
-                   "properties": {
-                       "color": "blue",
-                        },
-                   "geometry": {
-                       "type": "Polygon",
-                       "coordinates":[
-                            vertices[r],
-                       ]
-                   }
-                  }
-        data["features"].append(feature)
+        points = [(lat, lon) for lat, lon in vertices[r]]
+        points.append(points[0])
+        p = geojson.Polygon([points])
+        feature = geojson.Feature(geometry=p)
+        features.append(feature)
 
-    return data
+    fc = geojson.FeatureCollection(features)
+    return geojson.dumps(fc, sort_keys=True)
 
 
 def get_data():
@@ -51,12 +45,11 @@ def get_data():
                 dlat, dlon = d.location.split(",")
 
                 points.append((dlon, dlat))
-            points.append(points[0])  # Add the start point
             points = np.array(points)
 
             if points.shape[0] > 4:
-                vor = Voronoi(points[:, :2])
-                return voronoi_finite_polygons_2d(vor)
+                vor = Voronoi(points)
+                return voronoi_finite_polygons_2d(vor, 0.05)
 
 
 if __name__ == "__main__":
