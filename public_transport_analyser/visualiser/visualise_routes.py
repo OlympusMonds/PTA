@@ -70,7 +70,7 @@ def vis():
             if points.shape[0] > 4:
                 vor = Voronoi(points[:,:2])
 
-                regions, vertices = voronoi_finite_polygons_2d(vor)
+                regions, vertices = voronoi_finite_polygons_2d(vor, 0.08)
 
                 # colorize
                 for i, region in enumerate(regions):
