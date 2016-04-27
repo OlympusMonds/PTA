@@ -9,47 +9,85 @@ from public_transport_analyser.rest_backend.utils import voronoi_finite_polygons
 
 ask_flask = Flask(__name__)
 
+
 @ask_flask.route("/")
 def index():
-    data = make_json()
-    return str(data)  # TODO: this makes array() and ' instead of "
+    return "Put an origin in the url"
 
 
-def make_json():
+@ask_flask.route("/<origin>")
+def get_routes_from_origin(origin):
+    try:
+        rest_json = make_json(origin)
+    except ValueError as ve:
+        return str(ve)
 
-    regions, vertices = get_data()
-
-    features = []
-
-    for r in regions:
-        points = [(lat, lon) for lat, lon in vertices[r]]
-        points.append(points[0])
-        p = geojson.Polygon([points])
-        feature = geojson.Feature(geometry=p)
-        features.append(feature)
-
-    fc = geojson.FeatureCollection(features)
-    return geojson.dumps(fc, sort_keys=True)
+    return rest_json
 
 
-def get_data():
+@ask_flask.route("/origins")
+def get_origins():
+    lonlats = []
 
     with pny.db_session:
         origins = pny.select(o for o in Origin)[:]
 
         for o in origins:
-            points = []
             lat, lon = o.location.split(",")
+            lonlats.append((float(lon), float(lat)))
 
-            for d in o.destinations:
-                dlat, dlon = d.location.split(",")
+    features = []
+    for origin in lonlats:
+        properties = {"location": "g"}#""{}".format(origin),}
+        features.append(geojson.Feature(geometry=geojson.Point(origin), properties=properties))
 
-                points.append((dlon, dlat))
-            points = np.array(points)
+    fc = geojson.FeatureCollection(features)
+    return geojson.dumps(fc, sort_keys=True)
 
-            if points.shape[0] > 4:
-                vor = Voronoi(points)
-                return voronoi_finite_polygons_2d(vor, 0.05)
+
+def make_json(origin):
+
+    regions, vertices = get_data(origin)
+
+    features = []
+    properties = {"color": "blue",
+                  "strokeWeight": "1",}
+
+    for r in regions:
+        points = [(lon, lat) for lat, lon in vertices[r]]
+        points.append(points[0])  # close off the polygon
+
+        features.append(geojson.Feature(geometry=geojson.Polygon([points]),
+                                        properties=properties,))
+
+    fc = geojson.FeatureCollection(features)
+    return geojson.dumps(fc, sort_keys=True)
+
+
+def get_data(origin):
+
+    with pny.db_session:
+        if Origin.exists(location=origin):
+            o = Origin.get(location=origin)
+        else:
+            raise ValueError("No such origin.")
+
+        points = []
+        lat, lon = o.location.split(",")
+
+        for d in o.destinations:
+            dlat, dlon = d.location.split(",")
+
+            points.append((dlon, dlat))
+        points = np.array(points)
+
+        if points.shape[0] > 4:
+            vor = Voronoi(points)
+        else:
+            raise ValueError("Not enough points to construct map. "
+                             "Points = {}, need >4.".format(points.shape))
+
+        return voronoi_finite_polygons_2d(vor, 0.05)
 
 
 if __name__ == "__main__":

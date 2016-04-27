@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 
 import pony.orm as pny
 from public_transport_analyser.database.database import Origin, init
-from public_transport_analyser.data_gatherer.config import bounding_box
+#from public_transport_analyser.data_gatherer.config import bounding_box
 
 
 def vis():
-    minlat, minlon = bounding_box["minlat"], bounding_box["minlon"]
-    maxlat, maxlon = bounding_box["maxlat"], bounding_box["maxlon"]
+    #minlat, minlon = bounding_box["minlat"], bounding_box["minlon"]
+    #maxlat, maxlon = bounding_box["maxlat"], bounding_box["maxlon"]
 
     lats, lons = [], []
 
@@ -31,8 +31,8 @@ def vis():
     plt.figure()
     plt.scatter(lons, lats, c="black", s=5)
     plt.axis('equal')
-    plt.xlim(minlon, maxlon)
-    plt.ylim(minlat, maxlat)
+    #plt.xlim(minlon, maxlon)
+    #plt.ylim(minlat, maxlat)
     plt.savefig(os.path.join(os.getcwd(), "maps", "origins.png"))
     plt.close()
 

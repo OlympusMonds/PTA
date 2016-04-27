@@ -1,6 +1,7 @@
 import numpy as np
 
-def voronoi_finite_polygons_2d(vor, radius=None):
+
+def voronoi_finite_polygons_2d(vor, bounding_box=None):
     """
     From: https://gist.github.com/pv/8036995
     Reconstruct infinite voronoi regions in a 2D diagram to finite
@@ -28,8 +29,12 @@ def voronoi_finite_polygons_2d(vor, radius=None):
     new_vertices = vor.vertices.tolist()
 
     center = vor.points.mean(axis=0)
-    if radius is None:
-        radius = vor.points.ptp().max()*2
+
+    minlat, minlon = bounding_box["minlat"], bounding_box["minlon"]
+    maxlat, maxlon = bounding_box["maxlat"], bounding_box["maxlon"]
+    deltalat = maxlat - minlat
+    deltalon = maxlon - minlon
+    radius = max(deltalat, deltalon) * 2
 
     # Construct a map containing all ridges for a given point
     all_ridges = {}

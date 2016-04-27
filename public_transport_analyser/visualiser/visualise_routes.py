@@ -23,7 +23,7 @@ def vis():
     minlat, minlon = bounding_box["minlat"], bounding_box["minlon"]
     maxlat, maxlon = bounding_box["maxlat"], bounding_box["maxlon"]
 
-    jet = plt.get_cmap('jet')
+    jet = plt.get_cmap('Reds')
     cNorm = colors.Normalize(vmin=0, vmax=1)
     scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=jet)
 
@@ -34,7 +34,7 @@ def vis():
             plt.figure()
 
             lat, lon = o.location.split(",")
-            plt.scatter(lon, lat, c="black", s=100)
+            plt.scatter(lon, lat, c="black", s=50, zorder=4)
 
             points = []
 
@@ -64,20 +64,20 @@ def vis():
 
                 points.append((dlon, dlat, float(ratio)))
 
-            # compute Voronoi tesselation
             points = np.array(points)
 
             if points.shape[0] > 4:
+                # compute Voronoi tesselation
                 vor = Voronoi(points[:,:2])
 
-                regions, vertices = voronoi_finite_polygons_2d(vor, 0.08)
+                regions, vertices = voronoi_finite_polygons_2d(vor, bounding_box)
 
                 # colorize
                 for i, region in enumerate(regions):
                     polygon = vertices[region]
-                    plt.fill(*zip(*polygon), alpha=0.3)
+                    plt.scatter(points[i, 0], points[i, 1], s=10, c="white", zorder=3)
+                    plt.fill(*zip(*polygon), color=scalarMap.to_rgba(points[i, 2]), alpha=1, zorder=2)
 
-                plt.scatter(points[:, 0], points[:, 1], s=20, c=points[:, 2])
                 plt.axis('equal')
                 plt.xlim(minlon, maxlon)
                 plt.ylim(minlat, maxlat)
