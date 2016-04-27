@@ -42,11 +42,22 @@ UPDATE: I'm now on the free 60 day trial, so it's much faster now.
 
 Can I run this too?
 -------------------
-Yes, you just need to make a file in the src directory called "api.py",
-and in there put your Google Maps Distance Matrix API key. It should 
+Yes, you just need to make two files:
+
+1) public_transport_analyser/data_gatherer/api.py
+
+and in there put your Google Maps Distance Matrix API key. It should
 look like:
     
     apikey="AJAH<your actual key>SJKAJ"
+
+2) public_transport_analyser/database/db_details.py
+
+and it should look like:
+
+    dbusername = "<your db username>"
+    dbpassword = "<your db password>"
+    dbname = "<the name of your db>"
 
 
 Dependencies

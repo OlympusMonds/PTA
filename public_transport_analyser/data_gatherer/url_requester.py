@@ -1,4 +1,5 @@
 import time
+import datetime
 import requests
 
 
@@ -11,14 +12,18 @@ def request_urls(max_daily_requests, bad_routes, url_queue, data_queue):
     :return: None, the while loop should run forever.
     """
 
-    total_requests_today = 0
-    day_in_sec = 3600*24
+    day_in_sec = 3600.*24.
     request_rate = day_in_sec / max_daily_requests
+
+    total_requests_today = 0
+    start_time = datetime.datetime.now()
 
     while True:
         route_info = url_queue.get()
-        print(total_requests_today, route_info["url"])
-
+        print("req {0}: route = {1}, reqrate = {2:0.3f}, url = {3}".format(total_requests_today,
+                                                                           route_info["route"],
+                                                                           request_rate,
+                                                                           route_info["url"]))
         need_to_sleep = True
 
         if route_info["route"] not in bad_routes:
@@ -54,7 +59,15 @@ def request_urls(max_daily_requests, bad_routes, url_queue, data_queue):
             total_requests_today += 1
             time.sleep(request_rate)
 
+        time_passed = (datetime.datetime.now() - start_time).total_seconds()
+        request_rate = (day_in_sec - time_passed) / (max_daily_requests - total_requests_today)
+
+        if time_passed >= day_in_sec:
+            print("24 hours passed. Resetting count to new day.")
+            total_requests_today = 0
+            start_time = datetime.datetime.now()
+
         if total_requests_today >= max_daily_requests:
             print("Exceeded daily request limit. Sleeping until tomorrow.")
-            time.sleep(day_in_sec)  # TODO: This isn't what you want. You need to make this be "sleep for the rest of this day".
             total_requests_today = 0
+            time.sleep(day_in_sec - time_passed)
