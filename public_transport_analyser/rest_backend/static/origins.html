@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Data Layer: Event Handling</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+      #info-box {
+        background-color: white;
+        border: 1px solid black;
+        bottom: 30px;
+        height: 20px;
+        padding: 10px;
+        position: absolute;
+        left: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="info-box">?</div>
+    <script>
+
+      var map;
+      function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 12,
+          center: {lat: -33.9, lng: 151.2}
+        });
+
+        // Load GeoJSON
+        map.data.loadGeoJson('http://luketown.com:5000/api/origins');
+
+        //map.data.loadGeoJson('origins.json');
+
+        // Set mouseover event for each feature.
+        map.data.addListener('mouseover', function(event) {
+          document.getElementById('info-box').textContent =
+              event.feature.getProperty('num_dest');
+        });
+
+          map.addListener('click', function() {
+              map.data.setMap();
+              map.data.loadGeoJson('http://luketown.com:5000/api/origin/-33.872,151.243');
+        });
+
+
+
+      }
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDutbFRnQ6ZUJPq8P8lWZySu4LyYrAAbdE&callback=initMap">
+    </script>
+  </body>
+</html>

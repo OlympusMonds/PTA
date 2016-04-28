@@ -16,12 +16,12 @@ import numpy as np
 import pony.orm as pny
 from public_transport_analyser.database.database import Origin, init
 from public_transport_analyser.rest_backend.utils import voronoi_finite_polygons_2d
-from public_transport_analyser.data_gatherer.config import bounding_box
+#from public_transport_analyser.data_gatherer.config import bounding_box
 
 
 def vis():
-    minlat, minlon = bounding_box["minlat"], bounding_box["minlon"]
-    maxlat, maxlon = bounding_box["maxlat"], bounding_box["maxlon"]
+    #minlat, minlon = bounding_box["minlat"], bounding_box["minlon"]
+    #maxlat, maxlon = bounding_box["maxlat"], bounding_box["maxlon"]
 
     jet = plt.get_cmap('Reds')
     cNorm = colors.Normalize(vmin=0, vmax=1)
@@ -79,8 +79,8 @@ def vis():
                     plt.fill(*zip(*polygon), color=scalarMap.to_rgba(points[i, 2]), alpha=1, zorder=2)
 
                 plt.axis('equal')
-                plt.xlim(minlon, maxlon)
-                plt.ylim(minlat, maxlat)
+                #plt.xlim(minlon, maxlon)
+                #plt.ylim(minlat, maxlat)
 
                 filename = "origin_{0}_{1}.png".format(lat, lon)
                 print("Saving {0}".format(filename))

@@ -1,48 +1,66 @@
 import pony.orm as pny
-from flask import Flask, url_for, redirect
+from flask import Flask, render_template
+from flask_restful import Resource, Api
+
 import numpy as np
 from scipy.spatial import Voronoi
 import geojson
+import os
 
 from public_transport_analyser.database.database import Origin, init
 from public_transport_analyser.rest_backend.utils import voronoi_finite_polygons_2d
 
-ask_flask = Flask(__name__)
+pta = Flask(__name__)
+api = Api(pta)
 
 
-@ask_flask.route("/")
+@pta.route("/")
 def index():
-    return "Put an origin in the url"
+    return pta.send_static_file("origins.html")
 
 
-@ask_flask.route("/<origin>")
-def get_routes_from_origin(origin):
-    try:
-        rest_json = make_json(origin)
-    except ValueError as ve:
-        return str(ve)
+class FetchAllOrigins(Resource):
+    def get(self):
+        lonlats = []
 
-    return rest_json
+        with pny.db_session:
+            origins = pny.select(o for o in Origin)[:]
+
+            for o in origins:
+                lat, lon = map(float, o.location.split(","))
+                lonlats.append((lon, lat, len(o.destinations)))
+
+        features = []
+        for lat, lon, num_dest in lonlats:
+            properties = {"num_dest": num_dest}  # ""{}".format(origin),}
+            features.append(geojson.Feature(geometry=geojson.Point((lat, lon)), properties=properties))
+
+        fc = geojson.FeatureCollection(features)
+        return fc
 
 
-@ask_flask.route("/origins")
-def get_origins():
-    lonlats = []
+class FetchOrigin(Resource):
+    def get(self, origin):
+        destinations = []
 
-    with pny.db_session:
-        origins = pny.select(o for o in Origin)[:]
+        with pny.db_session:
+            if Origin.exists(location=origin):
+                o = Origin.get(location=origin)
+            else:
+                raise ValueError("No such origin.")
 
-        for o in origins:
-            lat, lon = o.location.split(",")
-            lonlats.append((float(lon), float(lat)))
+            for d in o.destinations:
+                dlat, dlon = map(float, d.location.split(","))
+                destinations.append((dlon, dlat, len(d.trips)))
 
-    features = []
-    for origin in lonlats:
-        properties = {"location": "g"}#""{}".format(origin),}
-        features.append(geojson.Feature(geometry=geojson.Point(origin), properties=properties))
+        features = []
+        for dlat, dlon, num_trips in destinations:
+            properties = {"trips": num_trips}  # ""{}".format(origin),}
+            features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
 
-    fc = geojson.FeatureCollection(features)
-    return geojson.dumps(fc, sort_keys=True)
+        fc = geojson.FeatureCollection(features)
+
+        return fc
 
 
 def make_json(origin):
@@ -90,7 +108,11 @@ def get_data(origin):
         return voronoi_finite_polygons_2d(vor, 0.05)
 
 
+api.add_resource(FetchAllOrigins, '/api/origins')
+api.add_resource(FetchOrigin, '/api/origin/<string:origin>')
+
+
 if __name__ == "__main__":
     init()
-    ask_flask.debug = True
-    ask_flask.run()
+    pta.debug = True
+    pta.run()

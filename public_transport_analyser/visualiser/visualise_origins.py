@@ -29,7 +29,7 @@ def vis():
             lons.append(lon)
 
     plt.figure()
-    plt.scatter(lons, lats, c="black", s=5)
+    plt.scatter(lons, lats, c="black", s=1)
     plt.axis('equal')
     #plt.xlim(minlon, maxlon)
     #plt.ylim(minlat, maxlat)
