@@ -1,6 +1,7 @@
 import time
 import datetime
 import requests
+import logging
 
 
 def request_urls(max_daily_requests, bad_routes, url_queue, data_queue):
@@ -11,24 +12,33 @@ def request_urls(max_daily_requests, bad_routes, url_queue, data_queue):
     :param url_queue: The queue of URLs to process
     :return: None, the while loop should run forever.
     """
+    logger = logging.getLogger('PTA.request_urls')
 
     day_in_sec = 3600.*24.
     request_rate = day_in_sec / max_daily_requests
 
     total_requests_today = 0
     start_time = datetime.datetime.now()
+    logger.debug("start_time = {}".format(start_time))
 
     while True:
+        logger.debug("Getting route_info")
         route_info = url_queue.get()
-        print("req {0}: route = {1}, reqrate = {2:0.3f}, url = {3}".format(total_requests_today,
-                                                                           route_info["route"],
-                                                                           request_rate,
-                                                                           route_info["url"]))
+        logger.debug("Got route_info")
+
+        logger.info("Req {0}: route = {1}, url = {2}".format(total_requests_today,
+                                                              route_info["route"],
+                                                              route_info["url"]))
+        logger.debug("Request sleep period = {}".format(request_rate))
+
         need_to_sleep = True
 
         if route_info["route"] not in bad_routes:
             try:
+                logger.debug("Requesting data for route {}".format(route_info["route"]))
                 r = requests.get(route_info["url"])
+                logger.debug("Got data for route {}".format(route_info["route"]))
+
                 if r.status_code == 200:
                     reqjson = r.json()
 
@@ -37,37 +47,43 @@ def request_urls(max_daily_requests, bad_routes, url_queue, data_queue):
 
                     elif reqjson["status"] == "OVER_QUERY_LIMIT":
                         total_requests_today = max_daily_requests + 1  # we need to stop now
-                        print("Google says limit has been reached")
+                        logger.error("Google says limit has been reached")
                     else:
-                        print("Unknown response status: {0}; skipped".format(reqjson["status"]))
+                        logger.error("Unknown response status: {0}; skipped".format(reqjson["status"]))
                 else:
-                    print("Bad response (response = {0}); skipped.".format(r.status_code))
+                    logger.error("Bad response (response = {0}); skipped.".format(r.status_code))
 
             except ConnectionError as ce:
-                print("Connection error. Computer says:\n{0}".format(ce))
+                logger.error("Connection error. Computer says:\n{0}".format(ce))
                 need_to_sleep = False
             except Exception as e:
-                print("Unknown exception caught. Computer says:\n{0}\nskipped.".format(e))
+                logger.error("Unknown exception caught. Computer says:\n{0}\nskipped.".format(e))
 
         else:
-            print("Bad route; skipped.")
+            logger.info("Bad route; skipped.")
             need_to_sleep = False
 
         url_queue.task_done()
+        logger.debug("Queued route {} released.".format(route_info["route"]))
 
         if need_to_sleep:
+            logger.debug("Sleeping for {} seconds".format(request_rate))
             total_requests_today += 1
             time.sleep(request_rate)
 
         time_passed = (datetime.datetime.now() - start_time).total_seconds()
         request_rate = (day_in_sec - time_passed) / (max_daily_requests - total_requests_today)
+        logger.debug("Time passed today: {} seconds, request_rate: {} seconds".format(time_passed, request_rate))
 
         if time_passed >= day_in_sec:
-            print("24 hours passed. Resetting count to new day.")
+            logger.info("24 hours passed. Resetting count to new day.")
             total_requests_today = 0
             start_time = datetime.datetime.now()
 
         if total_requests_today >= max_daily_requests:
-            print("Exceeded daily request limit. Sleeping until tomorrow.")
+            seconds_until_tomorrow = day_in_sec - time_passed
+            logger.error("Exceeded daily request limit. Sleeping until tomorrow (for {} seconds).".format(seconds_until_tomorrow))
             total_requests_today = 0
-            time.sleep(day_in_sec - time_passed)
+            time.sleep(seconds_until_tomorrow)
+
+        logger.debug("Finished with route {}".format(route_info["route"]))

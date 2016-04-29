@@ -5,17 +5,20 @@ vs. transit for various times. It is also a prototype for the website that
 will no double come later.
 """
 
-import sys
 import os
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
-from scipy.spatial import Voronoi
-import numpy as np
+import sys
 
+import matplotlib.cm as cmx
+import matplotlib.colors as colors
+import matplotlib.pyplot as plt
+import numpy as np
 import pony.orm as pny
+from scipy.spatial import Voronoi
+
 from public_transport_analyser.database.database import Origin, init
-from public_transport_analyser.rest_backend.utils import voronoi_finite_polygons_2d
+from public_transport_analyser.visualiser.utils import voronoi_finite_polygons_2d
+
+
 #from public_transport_analyser.data_gatherer.config import bounding_box
 
 

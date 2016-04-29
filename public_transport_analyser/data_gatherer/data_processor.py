@@ -1,14 +1,22 @@
 import pony.orm as pny
+import logging
+
 from public_transport_analyser.database.database import Origin, Destination, Trip
 from public_transport_analyser.data_gatherer.PTEexceptions import ZeroResultsError
 
 
 def process_data(bad_routes, data_queue):
+    logger = logging.getLogger('PTA.data_process')
+
     while True:
+        logger.debug("Getting route_info and data")
         route_info, reqjson = data_queue.get()
+        logger.debug("Got route_info and data")
 
         try:
+            logger.debug("Process data for route {}".format(route_info["route"]))
             duration, distance = process_response(reqjson)
+            logger.debug("Save to DB for route {}".format(route_info["route"]))
             save_to_db(route_info, duration, distance)
 
         except ZeroResultsError:
@@ -16,13 +24,13 @@ def process_data(bad_routes, data_queue):
             ZeroResultsError typically means the route generator put the origin or the destination
             in a body of water or something.
             """
-            print("No results for that route; result skipped.")
+            logger.info("No results for that route; result skipped.")
             bad_routes.add(route_info["route"])
             if len(bad_routes) > 100e3:
                 bad_routes.clear()  # Make sure things don't get out of hand.
 
         except ValueError:
-            print("Returned data doesn't match expected data structure; result skipped.")
+            logger.error("Returned data doesn't match expected data structure; result skipped.")
 
         finally:
             data_queue.task_done()
@@ -56,6 +64,8 @@ def save_to_db(route_info, duration, distance):
     :param distance: distance in meters of the trip
     :return: none
     """
+    logger = logging.getLogger('PTA.database    ')
+
     origin, dest = route_info["route"].split("_")
 
     with pny.db_session:
@@ -79,8 +89,9 @@ def save_to_db(route_info, duration, distance):
                  distance = distance,
                  destination = d)
         d.trips.add(t)
-        print("  DB: saved route: {}, mode: {}, time: {}, duration: {}, distance: {}.".format(route_info["route"],
-                                                                                              route_info["mode"],
-                                                                                              route_info["hour"],
-                                                                                              duration,
-                                                                                              distance))
+
+    logger.info("saved route: {}, mode: {}, time: {}, duration: {}, distance: {}.".format(route_info["route"],
+                                                                                          route_info["mode"],
+                                                                                          route_info["hour"],
+                                                                                          duration,
+                                                                                          distance))

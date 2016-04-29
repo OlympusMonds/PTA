@@ -1,14 +1,12 @@
-import pony.orm as pny
-from flask import Flask, render_template
-from flask_restful import Resource, Api
-
-import numpy as np
-from scipy.spatial import Voronoi
 import geojson
-import os
+import numpy as np
+import pony.orm as pny
+from flask import Flask
+from flask_restful import Resource, Api
+from scipy.spatial import Voronoi
 
 from public_transport_analyser.database.database import Origin, init
-from public_transport_analyser.rest_backend.utils import voronoi_finite_polygons_2d
+from public_transport_analyser.visualiser.utils import voronoi_finite_polygons_2d
 
 pta = Flask(__name__)
 api = Api(pta)
