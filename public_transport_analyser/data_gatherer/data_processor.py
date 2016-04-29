@@ -57,21 +57,21 @@ def save_to_db(route_info, duration, distance):
     :return: none
     """
     origin, dest = route_info["route"].split("_")
+
     with pny.db_session:
         """
         Fetch the origin and dest from the DB, or create if they don't
         exist. Once obtained, make a new trip between them storing the
         results.
         """
-        if Origin.exists(location = origin):
-            o = Origin.get(location = origin)
-        else:
-            o = Origin(location = origin)
+        try:
+            o = Origin[origin]
+        except pny.ObjectNotFound:
+            o = Origin(location=origin)
 
-        if Destination.exists(location = dest):
-            d = Destination.get(location = dest)
-        else:
-            d = Destination(location = dest, origin = o)
+        d = Destination.get(location = dest, origin = o)
+        if not d:
+            d = Destination(location=dest, origin=o)
 
         t = Trip(mode = route_info["mode"],
                  time = route_info["hour"],
