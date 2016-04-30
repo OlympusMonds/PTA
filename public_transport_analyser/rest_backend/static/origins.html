@@ -71,6 +71,7 @@
           else if (feature.getProperty('isPolygon')) {
             return /** @type {google.maps.Data.StyleOptions} */({
               fillColor: feature.getProperty('ratiocolor'),
+              strokeWeight: 1,
             });
           }
           else if (feature.getProperty('isDestination')) {
@@ -89,7 +90,7 @@
                     "; Destinations: " + event.feature.getProperty('num_dest');
           }
           else if (event.feature.getProperty('isPolygon')) {
-            content = "Ratio: " + event.feature.getProperty('ratio');
+            content = "Ratio (driving/publictransport): " + event.feature.getProperty('ratio');
           }
           else if (event.feature.getProperty('isDestination')) {
             content = "Location: " + event.feature.getProperty('location') +

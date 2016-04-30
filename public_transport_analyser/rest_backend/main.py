@@ -19,25 +19,32 @@ def index():
 
 
 class FetchAllOrigins(Resource):
-    @cache.cached(timeout=5)
+    @cache.cached(timeout=300)
     def get(self):
         lonlats = []
+        try:
+            with pny.db_session:
+                origins = pny.select(o for o in Origin)[:]
 
-        with pny.db_session:
-            origins = pny.select(o for o in Origin)[:]
+                for o in origins:
+                    lat, lon = map(float, o.location.split(","))
+                    lonlats.append((lon, lat, len(o.destinations)))
 
-            for o in origins:
-                lat, lon = map(float, o.location.split(","))
-                lonlats.append((lon, lat, len(o.destinations)))
+            features = []
+            for lon, lat, num_dest in lonlats:
+                properties = {"num_dest": num_dest,
+                              "isOrigin": True,
+                              "location": ",".join(map(str, (lat,lon)))}  # ""{}".format(origin),}
+                features.append(geojson.Feature(geometry=geojson.Point((lon, lat)), properties=properties))
 
-        features = []
-        for lon, lat, num_dest in lonlats:
+            fc = geojson.FeatureCollection(features)
+
+        except ValueError as ve:
             properties = {"num_dest": num_dest,
                           "isOrigin": True,
-                          "location": ",".join(map(str, (lat,lon)))}  # ""{}".format(origin),}
-            features.append(geojson.Feature(geometry=geojson.Point((lon, lat)), properties=properties))
-
-        fc = geojson.FeatureCollection(features)
+                          "location": "error! reload page."}
+            f = geojson.Feature(geometry=geojson.Point((151.2,-33.9)), properties=properties)
+            fc = geojson.FeatureCollection([f,])
         return fc
 
 
@@ -45,72 +52,79 @@ class FetchOrigin(Resource):
     def get(self, origin):
         destinations = []
         time = 6
+        try:
+            with pny.db_session:
+                if Origin.exists(location=origin):
+                    o = Origin.get(location=origin)
+                else:
+                    raise ValueError("No such origin.")
 
-        with pny.db_session:
-            if Origin.exists(location=origin):
-                o = Origin.get(location=origin)
-            else:
-                raise ValueError("No such origin.")
+                num_dest = len(o.destinations)
+                for d in o.destinations:
+                    dlat, dlon = map(float, d.location.split(","))
 
-            num_dest = len(o.destinations)
-            for d in o.destinations:
-                dlat, dlon = map(float, d.location.split(","))
+                    driving = -1
+                    transit = -1
+                    for t in d.trips:
+                        if t.mode == "driving":
+                            driving = t.duration
+                        elif t.time == time:
+                            transit = t.duration
 
-                driving = -1
-                transit = -1
-                for t in d.trips:
-                    if t.mode == "driving":
-                        driving = t.duration
-                    elif t.time == time:
-                        transit = t.duration
+                    ratio = 1.0
+                    if driving > 0 and transit > 0:
+                        ratio = float(driving) / float(transit)
 
-                ratio = 1.0
-                if driving > 0 and transit > 0:
-                    ratio = float(driving) / float(transit)
+                    destinations.append((dlon, dlat, len(d.trips), ratio))
 
-                destinations.append((dlon, dlat, len(d.trips), ratio))
+            # Build GeoJSON features
+            # Plot the origin point
+            features = []
+            opoint = tuple(reversed(list(map(float, origin.split(",")))))  # TODO fix this
+            properties = {"isOrigin": True,
+                          "num_dest": num_dest,  # TODO: this is why clicking fails
+                          "location": opoint,
+                          }
+            features.append(geojson.Feature(geometry=geojson.Point(opoint), properties=properties))
 
-        # Build GeoJSON features
-        # Plot the origin point
-        features = []
-        opoint = tuple(reversed(list(map(float, origin.split(",")))))  # TODO fix this
-        properties = {"isOrigin": True,
-                      "num_dest": num_dest,  # TODO: this is why clicking fails
-                      "location": opoint,
-                      }
-        features.append(geojson.Feature(geometry=geojson.Point(opoint), properties=properties))
+            # Plot the destination points
+            for details in destinations:
+                dlon, dlat, num_trips, _ = details
+                properties = {"trips": num_trips,
+                              "isDestination": True,
+                              "location": (dlon, dlat)}
+                features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
 
-        # Plot the destination points
-        for details in destinations:
-            dlon, dlat, num_trips, _ = details
-            properties = {"trips": num_trips,
-                          "isDestination": True,
-                          "location": (dlon, dlat)}
-            features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
+            def clamp(x):
+                x = int(x)
+                return max(0, min(x, 255))
 
-        def clamp(x):
-            x = int(x)
-            return max(0, min(x, 255))
+            # Plot the destination map
+            regions, vertices = get_voronoi_map(destinations)
 
-        # Plot the destination map
-        regions, vertices = get_voronoi_map(destinations)
+            for i, region in enumerate(regions):
+                ratio = destinations[i][3]
+                ratiocolor = "#{0:02x}{1:02x}{2:02x}".format(clamp((1-ratio) * 255), 0, 0)
+                properties = {"color": "blue",
+                              "strokeWeight": "1",
+                              "isPolygon": True,
+                              "ratio": ratio,
+                              "ratiocolor": ratiocolor}
+                points = [(lon, lat) for lon, lat in vertices[region]]
+                points.append(points[0])  # close off the polygon
 
-        for i, region in enumerate(regions):
-            ratio = destinations[i][3]
-            ratiocolor = "#{0:02x}{1:02x}{2:02x}".format(clamp((1-ratio) * 255), 0, 0)
-            properties = {"color": "blue",
-                          "strokeWeight": "1",
-                          "isPolygon": True,
-                          "ratio": ratio,
-                          "ratiocolor": ratiocolor}
-            points = [(lon, lat) for lon, lat in vertices[region]]
-            points.append(points[0])  # close off the polygon
+                features.append(geojson.Feature(geometry=geojson.Polygon([points]),
+                                                properties=properties, ))
 
-            features.append(geojson.Feature(geometry=geojson.Polygon([points]),
-                                            properties=properties, ))
+            fc = geojson.FeatureCollection(features)
 
-        fc = geojson.FeatureCollection(features)
-
+        except ValueError as ve:
+            properties = {"isOrigin": True,
+                          "num_dest": -1,
+                          "location": "error! reload page.",
+                          }
+            f = geojson.Feature(geometry=geojson.Point((151.2,-33.9)), properties=properties)
+            fc = geojson.FeatureCollection([f,])
         return fc
 
 
@@ -119,7 +133,7 @@ class FetchTrips(Resource):
 
         jsonorigin = list(map(float, origin.split(",")))
         jsondest = list(map(float, destination.split(",")))
-        print(jsonorigin, jsondest)
+
         with pny.db_session:
             if Origin.exists(location=origin):
                 o = Origin.get(location=origin)
@@ -154,4 +168,4 @@ api.add_resource(FetchTrips, '/api/trip/<string:origin>/<string:destination>')
 if __name__ == "__main__":
     init()
     pta.debug = True
-    pta.run()
+    pta.run(host='0.0.0.0')
