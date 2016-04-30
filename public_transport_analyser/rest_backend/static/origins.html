@@ -17,7 +17,7 @@
         background-color: white;
         border: 1px solid black;
         bottom: 30px;
-        height: 20px;
+        height: 30px;
         padding: 10px;
         position: absolute;
         left: 30px;
@@ -26,10 +26,19 @@
   </head>
   <body>
     <div id="map"></div>
-    <div id="info-box">?</div>
+    <div id="info-box">
+      <div>Destinations:</div>
+      <div id="dests">?</div>
+    </div>
     <script>
 
       var map;
+      var origins;
+      function clearMap() {
+        map.data.forEach(function (feature) {
+              map.data.remove(feature);
+        });
+      }
       function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
           zoom: 12,
@@ -37,22 +46,48 @@
         });
 
         // Load GeoJSON
-        map.data.loadGeoJson('http://luketown.com:5000/api/origins');
+        origins = map.data.loadGeoJson('http://luketown.com:5000/api/origins');
 
-        //map.data.loadGeoJson('origins.json');
+
+        map.data.setStyle(function(feature) {
+          var origin_image = {
+            url: '/static/imgs/origin.png',
+            size: new google.maps.Size(20, 32),
+            origin: new google.maps.Point(0, 0),
+            anchor: new google.maps.Point(0, 32)
+          };
+          var dest_image = {
+            url: '/static/imgs/destination.png',
+            size: new google.maps.Size(20, 32),
+            origin: new google.maps.Point(0, 0),
+            anchor: new google.maps.Point(0, 32)
+          };
+
+          if (feature.getProperty('isOrigin')) {
+            return /** @type {google.maps.Data.StyleOptions} */({
+              icon: origin_image,
+             });
+          }
+          return /** @type {google.maps.Data.StyleOptions} */({
+              icon: dest_image,
+          });
+        });
+
 
         // Set mouseover event for each feature.
         map.data.addListener('mouseover', function(event) {
-          document.getElementById('info-box').textContent =
-              event.feature.getProperty('num_dest');
+          document.getElementById('dests').textContent =
+              event.feature.getProperty('num_dest') + " " +
+              event.feature.getProperty('origin');
         });
 
-          map.addListener('click', function() {
-              map.data.setMap();
-              map.data.loadGeoJson('http://luketown.com:5000/api/origin/-33.872,151.243');
+        map.data.addListener('click', function(event) {
+          clearMap();
+          if (event.feature.getProperty('isOrigin')) {
+            origin = event.feature.getProperty('origin');
+            map.data.loadGeoJson('http://luketown.com:5000/api/origin/' + origin);
+          }
         });
-
-
 
       }
     </script>

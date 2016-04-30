@@ -29,9 +29,11 @@ class FetchAllOrigins(Resource):
                 lonlats.append((lon, lat, len(o.destinations)))
 
         features = []
-        for lat, lon, num_dest in lonlats:
-            properties = {"num_dest": num_dest}  # ""{}".format(origin),}
-            features.append(geojson.Feature(geometry=geojson.Point((lat, lon)), properties=properties))
+        for lon, lat, num_dest in lonlats:
+            properties = {"num_dest": num_dest,
+                          "isOrigin": True,
+                          "origin": ",".join(map(str, (lat,lon)))}  # ""{}".format(origin),}
+            features.append(geojson.Feature(geometry=geojson.Point((lon, lat)), properties=properties))
 
         fc = geojson.FeatureCollection(features)
         return fc
@@ -52,8 +54,12 @@ class FetchOrigin(Resource):
                 destinations.append((dlon, dlat, len(d.trips)))
 
         features = []
-        for dlat, dlon, num_trips in destinations:
-            properties = {"trips": num_trips}  # ""{}".format(origin),}
+        properties = {"isOrigin": True}
+        opoint = tuple(reversed(list(map(float, origin.split(",")))))  # TODO fix this
+        features.append(geojson.Feature(geometry=geojson.Point(opoint), properties=properties))
+
+        for dlon, dlat, num_trips in destinations:
+            properties = {"trips": num_trips, "isOrigin": False}  # ""{}".format(origin),}
             features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
 
         fc = geojson.FeatureCollection(features)
