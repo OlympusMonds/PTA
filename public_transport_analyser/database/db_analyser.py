@@ -52,6 +52,24 @@ def count_origins_with_no_dest():
     return num_bad_origins
 
 
+def origin_stats():
+    max_dests = -1
+    min_dests = 1e6
+    avg_dests = 0
+    count = 0
+
+    with pny.db_session:
+        origins = pny.select(o for o in Origin)[:]
+        for o in origins:
+            num_dests = len(o.destinations)
+            max_dests = max(max_dests, num_dests)
+            min_dests = min(min_dests, num_dests)
+            avg_dests += num_dests
+            count += 1
+
+    return max_dests, min_dests, avg_dests/float(count)
+
+
 def route_stats():
     max_trips = -1
     min_trips = 1e6
@@ -89,14 +107,19 @@ def analyser():
     print("Number of destinations: {}".format(count_destinations()))
     print("Number of trips: {}".format(count_trips()))
 
-
     print("Number of bad origins: {}".format(count_origins_with_no_dest()))
 
+    max_dests, min_dests, avg_dests = origin_stats()
+    print("Max destinations on a route: {}".format(max_dests))
+    print("Min destinations on a route: {}".format(min_dests))
+    print("Avg destinations on a route: {}".format(avg_dests))
+
+    """
     max_trips, min_trips, avg_trips, max_route, min_route = route_stats()
     print("Max trips on a route: {} ({})".format(max_trips, max_route))
     print("Min trips on a route: {} ({})".format(min_trips, min_route))
     print("Avg trips on a route: {}".format(avg_trips))
-
+    """
 
 
 if __name__ == "__main__":
