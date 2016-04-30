@@ -60,7 +60,7 @@ def request_urls(max_daily_requests, bad_routes, url_queue, data_queue):
                 logger.error("Unknown exception caught. Computer says:\n{0}\nskipped.".format(e))
 
         else:
-            logger.info("Bad route; skipped.")
+            logger.info("Bad route {}; skipped.".format(route_info["route"]))
             need_to_sleep = False
 
         url_queue.task_done()
