@@ -46,7 +46,7 @@
         });
 
         // Load GeoJSON
-        origins = map.data.loadGeoJson('http://luketown.com:5000/api/origins');
+        origins = map.data.loadGeoJson('/api/origins');
 
 
         map.data.setStyle(function(feature) {
@@ -68,9 +68,16 @@
               icon: origin_image,
              });
           }
-          return /** @type {google.maps.Data.StyleOptions} */({
+          else if (feature.getProperty('isPolygon')) {
+            return /** @type {google.maps.Data.StyleOptions} */({
+              fillColor: feature.getProperty('ratiocolor'),
+            });
+          }
+          else if (feature.getProperty('isDestination')) {
+            return /** @type {google.maps.Data.StyleOptions} */({
               icon: dest_image,
-          });
+            });
+          }
         });
 
 
@@ -93,14 +100,13 @@
 
         map.data.addListener('click', function(event) {
           clearMap();
-          // TODO: If someone clicks an origin when it is the only one, stuff goes wrong
           if (event.feature.getProperty('isOrigin')) {
             origin = event.feature.getProperty('location');
-            map.data.loadGeoJson('http://luketown.com:5000/api/origin/' + origin);
+            map.data.loadGeoJson('/api/origin/' + origin);
           }
           else {
             clearMap();
-            map.data.loadGeoJson('http://luketown.com:5000/api/origins');
+            map.data.loadGeoJson('/api/origins');
           }
         });
 

@@ -75,7 +75,7 @@ class FetchOrigin(Resource):
         features = []
         opoint = tuple(reversed(list(map(float, origin.split(",")))))  # TODO fix this
         properties = {"isOrigin": True,
-                      "num_dest": num_dest,
+                      "num_dest": num_dest,  # TODO: this is why clicking fails
                       "location": opoint,
                       }
         features.append(geojson.Feature(geometry=geojson.Point(opoint), properties=properties))
@@ -88,15 +88,21 @@ class FetchOrigin(Resource):
                           "location": (dlon, dlat)}
             features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
 
+        def clamp(x):
+            x = int(x)
+            return max(0, min(x, 255))
+
         # Plot the destination map
         regions, vertices = get_voronoi_map(destinations)
 
         for i, region in enumerate(regions):
+            ratio = destinations[i][3]
+            ratiocolor = "#{0:02x}{1:02x}{2:02x}".format(clamp((1-ratio) * 255), 0, 0)
             properties = {"color": "blue",
                           "strokeWeight": "1",
-                          "isOrigin": False,
                           "isPolygon": True,
-                          "ratio": destinations[i][3]}
+                          "ratio": ratio,
+                          "ratiocolor": ratiocolor}
             points = [(lon, lat) for lon, lat in vertices[region]]
             points.append(points[0])  # close off the polygon
 
