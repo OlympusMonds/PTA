@@ -1,5 +1,4 @@
 import geojson
-import numpy as np
 import pony.orm as pny
 from flask import Flask
 from flask.ext.cache import Cache
@@ -7,6 +6,7 @@ from flask_restful import Resource, Api
 
 from public_transport_analyser.database.database import Origin, init
 from public_transport_analyser.visualiser.utils import get_voronoi_map
+
 
 pta = Flask(__name__)
 cache = Cache(pta, config={'CACHE_TYPE': 'simple'})
@@ -128,41 +128,8 @@ class FetchOrigin(Resource):
         return fc
 
 
-class FetchTrips(Resource):
-    def get(self, origin, destination):
-
-        jsonorigin = list(map(float, origin.split(",")))
-        jsondest = list(map(float, destination.split(",")))
-
-        with pny.db_session:
-            if Origin.exists(location=origin):
-                o = Origin.get(location=origin)
-            else:
-                raise ValueError("No such origin.")
-
-            dest = None
-            for d in o.destinations:
-                if d.location == destination:
-                    dest = d
-                    break
-            else:
-                raise ValueError("No such destination.")
-
-            trips = dest.trips
-
-            features = []
-            for t in trips:
-                properties = {"mode": t.mode}  # ""{}".format(origin),}
-                features.append(geojson.Feature(geometry=geojson.LineString([jsonorigin, jsondest]), properties=properties))
-
-        fc = geojson.FeatureCollection(features)
-
-        return fc
-
-
 api.add_resource(FetchAllOrigins, '/api/origins')
 api.add_resource(FetchOrigin, '/api/origin/<string:origin>')
-api.add_resource(FetchTrips, '/api/trip/<string:origin>/<string:destination>')
 
 
 if __name__ == "__main__":

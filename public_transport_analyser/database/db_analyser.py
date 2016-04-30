@@ -14,13 +14,20 @@ from public_transport_analyser.database.database import Origin, Destination, Tri
 
 def mess():
     with pny.db_session:
-        o = Origin["-33.924,151.206"]
-        d = Destination.get(location = "-33.907,151.194", origin = o)
-        print(o, o.location)
-        print(d, d.location)
-        print(d in o.destinations)
+        o = Origin["-33.886,151.22"]
+        for d in o.destinations:
+            print(d.location)
+            driving = -1
+            transit = -1
+            for t in d.trips:
+                if t.time == 6:
+                    if t.mode == "driving":
+                        driving = t.duration
+                    else:
+                        transit = t.duration
+            ratio = float(driving) / float(transit)
+            print("\t", ratio, "\n")
 
-        print(o.destinations)
 
 
 def count_origins():
@@ -58,16 +65,20 @@ def origin_stats():
     avg_dests = 0
     count = 0
 
+    max_route = None
+
     with pny.db_session:
         origins = pny.select(o for o in Origin)[:]
         for o in origins:
             num_dests = len(o.destinations)
-            max_dests = max(max_dests, num_dests)
+            if num_dests > max_dests:
+                max_dests = num_dests
+                max_route = "{}".format(o.location)
             min_dests = min(min_dests, num_dests)
             avg_dests += num_dests
             count += 1
 
-    return max_dests, min_dests, avg_dests/float(count)
+    return max_dests, min_dests, avg_dests/float(count), max_route
 
 
 def route_stats():
@@ -109,8 +120,8 @@ def analyser():
 
     print("Number of bad origins: {}".format(count_origins_with_no_dest()))
 
-    max_dests, min_dests, avg_dests = origin_stats()
-    print("Max destinations on a route: {}".format(max_dests))
+    max_dests, min_dests, avg_dests, max_route = origin_stats()
+    print("Max destinations on a route: {} ({})".format(max_dests, max_route))
     print("Min destinations on a route: {}".format(min_dests))
     print("Avg destinations on a route: {}".format(avg_dests))
 
