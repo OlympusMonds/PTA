@@ -2,6 +2,7 @@ import geojson
 import numpy as np
 import pony.orm as pny
 from flask import Flask
+from flask.ext.cache import Cache
 from flask_restful import Resource, Api
 from scipy.spatial import Voronoi
 
@@ -9,6 +10,7 @@ from public_transport_analyser.database.database import Origin, init
 from public_transport_analyser.visualiser.utils import voronoi_finite_polygons_2d
 
 pta = Flask(__name__)
+cache = Cache(pta, config={'CACHE_TYPE': 'simple'})
 api = Api(pta)
 
 
@@ -18,6 +20,7 @@ def index():
 
 
 class FetchAllOrigins(Resource):
+    @cache.cached(timeout=5)
     def get(self):
         lonlats = []
 

@@ -87,6 +87,10 @@
             origin = event.feature.getProperty('origin');
             map.data.loadGeoJson('http://luketown.com:5000/api/origin/' + origin);
           }
+          else {
+            clearMap();
+            map.data.loadGeoJson('http://luketown.com:5000/api/origins');
+          }
         });
 
       }
