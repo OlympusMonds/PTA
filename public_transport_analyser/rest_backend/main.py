@@ -4,10 +4,9 @@ import pony.orm as pny
 from flask import Flask
 from flask.ext.cache import Cache
 from flask_restful import Resource, Api
-from scipy.spatial import Voronoi
 
 from public_transport_analyser.database.database import Origin, init
-from public_transport_analyser.visualiser.utils import voronoi_finite_polygons_2d
+from public_transport_analyser.visualiser.utils import get_voronoi_map
 
 pta = Flask(__name__)
 cache = Cache(pta, config={'CACHE_TYPE': 'simple'})
@@ -35,7 +34,7 @@ class FetchAllOrigins(Resource):
         for lon, lat, num_dest in lonlats:
             properties = {"num_dest": num_dest,
                           "isOrigin": True,
-                          "origin": ",".join(map(str, (lat,lon)))}  # ""{}".format(origin),}
+                          "location": ",".join(map(str, (lat,lon)))}  # ""{}".format(origin),}
             features.append(geojson.Feature(geometry=geojson.Point((lon, lat)), properties=properties))
 
         fc = geojson.FeatureCollection(features)
@@ -45,6 +44,7 @@ class FetchAllOrigins(Resource):
 class FetchOrigin(Resource):
     def get(self, origin):
         destinations = []
+        time = 6
 
         with pny.db_session:
             if Origin.exists(location=origin):
@@ -52,18 +52,56 @@ class FetchOrigin(Resource):
             else:
                 raise ValueError("No such origin.")
 
+            num_dest = len(o.destinations)
             for d in o.destinations:
                 dlat, dlon = map(float, d.location.split(","))
-                destinations.append((dlon, dlat, len(d.trips)))
 
+                driving = -1
+                transit = -1
+                for t in d.trips:
+                    if t.mode == "driving":
+                        driving = t.duration
+                    elif t.time == time:
+                        transit = t.duration
+
+                ratio = 1.0
+                if driving > 0 and transit > 0:
+                    ratio = float(driving) / float(transit)
+
+                destinations.append((dlon, dlat, len(d.trips), ratio))
+
+        # Build GeoJSON features
+        # Plot the origin point
         features = []
-        properties = {"isOrigin": True}
         opoint = tuple(reversed(list(map(float, origin.split(",")))))  # TODO fix this
+        properties = {"isOrigin": True,
+                      "num_dest": num_dest,
+                      "location": opoint,
+                      }
         features.append(geojson.Feature(geometry=geojson.Point(opoint), properties=properties))
 
-        for dlon, dlat, num_trips in destinations:
-            properties = {"trips": num_trips, "isOrigin": False}  # ""{}".format(origin),}
+        # Plot the destination points
+        for details in destinations:
+            dlon, dlat, num_trips, _ = details
+            properties = {"trips": num_trips,
+                          "isDestination": True,
+                          "location": (dlon, dlat)}
             features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
+
+        # Plot the destination map
+        regions, vertices = get_voronoi_map(destinations)
+
+        for i, region in enumerate(regions):
+            properties = {"color": "blue",
+                          "strokeWeight": "1",
+                          "isOrigin": False,
+                          "isPolygon": True,
+                          "ratio": destinations[i][3]}
+            points = [(lon, lat) for lon, lat in vertices[region]]
+            points.append(points[0])  # close off the polygon
+
+            features.append(geojson.Feature(geometry=geojson.Polygon([points]),
+                                            properties=properties, ))
 
         fc = geojson.FeatureCollection(features)
 
@@ -100,52 +138,6 @@ class FetchTrips(Resource):
         fc = geojson.FeatureCollection(features)
 
         return fc
-
-
-
-def make_json(origin):
-
-    regions, vertices = get_data(origin)
-
-    features = []
-    properties = {"color": "blue",
-                  "strokeWeight": "1",}
-
-    for r in regions:
-        points = [(lon, lat) for lat, lon in vertices[r]]
-        points.append(points[0])  # close off the polygon
-
-        features.append(geojson.Feature(geometry=geojson.Polygon([points]),
-                                        properties=properties,))
-
-    fc = geojson.FeatureCollection(features)
-    return geojson.dumps(fc, sort_keys=True)
-
-
-def get_data(origin):
-
-    with pny.db_session:
-        if Origin.exists(location=origin):
-            o = Origin.get(location=origin)
-        else:
-            raise ValueError("No such origin.")
-
-        points = []
-        lat, lon = o.location.split(",")
-
-        for d in o.destinations:
-            dlat, dlon = d.location.split(",")
-
-            points.append((dlon, dlat))
-        points = np.array(points)
-
-        if points.shape[0] > 4:
-            vor = Voronoi(points)
-        else:
-            raise ValueError("Not enough points to construct map. "
-                             "Points = {}, need >4.".format(points.shape))
-
-        return voronoi_finite_polygons_2d(vor, 0.05)
 
 
 api.add_resource(FetchAllOrigins, '/api/origins')

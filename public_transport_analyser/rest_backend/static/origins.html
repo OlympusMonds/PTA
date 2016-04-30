@@ -27,7 +27,7 @@
   <body>
     <div id="map"></div>
     <div id="info-box">
-      <div>Destinations:</div>
+      <div>Information:</div>
       <div id="dests">?</div>
     </div>
     <script>
@@ -76,15 +76,26 @@
 
         // Set mouseover event for each feature.
         map.data.addListener('mouseover', function(event) {
-          document.getElementById('dests').textContent =
-              event.feature.getProperty('num_dest') + " " +
-              event.feature.getProperty('origin');
+          var content = "";
+          if (event.feature.getProperty('isOrigin')) {
+            content = "Location: " + event.feature.getProperty('location') +
+                    "; Destinations: " + event.feature.getProperty('num_dest');
+          }
+          else if (event.feature.getProperty('isPolygon')) {
+            content = "Ratio: " + event.feature.getProperty('ratio');
+          }
+          else if (event.feature.getProperty('isDestination')) {
+            content = "Location: " + event.feature.getProperty('location') +
+                    "; Trips: " + event.feature.getProperty('trips');
+          }
+          document.getElementById('dests').textContent = content;
         });
 
         map.data.addListener('click', function(event) {
           clearMap();
+          // TODO: If someone clicks an origin when it is the only one, stuff goes wrong
           if (event.feature.getProperty('isOrigin')) {
-            origin = event.feature.getProperty('origin');
+            origin = event.feature.getProperty('location');
             map.data.loadGeoJson('http://luketown.com:5000/api/origin/' + origin);
           }
           else {
