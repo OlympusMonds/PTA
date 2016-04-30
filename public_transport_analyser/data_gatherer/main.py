@@ -25,13 +25,13 @@ def setup_logging(log_to_file = True):
         fh = logging.FileHandler('pta.log')
         fh.setLevel(logging.DEBUG)
         fh.setFormatter(formatter)
-    logger.addHandler(fh)
+        logger.addHandler(fh)
 
     return logger
 
 
 def main():
-    logger = setup_logging()
+    logger = setup_logging(log_to_file=False)
 
     url_queue = queue.Queue(maxsize=queue_size)
     data_queue = queue.Queue(maxsize=queue_size)
