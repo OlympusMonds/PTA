@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Data Layer: Event Handling</title>
+    <title>Public Transport Analyser</title>
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
     <style>
@@ -22,14 +22,42 @@
         position: absolute;
         left: 30px;
       }
+      #instructions {
+        background-color: white;
+        border: 1px solid black;
+        top: 30px;
+        width: 300px;
+        padding: 10px;
+        position: absolute;
+        right: 30px;
+        font-size: 80%;
+      }
+      #reset {
+        background-color: #37ba44;
+        border: 2px solid #000000;
+        top: 10px;
+        padding: 10px;
+        position: absolute;
+        left: 120px;
+        font-size: 80%;
+        color: #ffffff;
+      }
     </style>
   </head>
   <body>
     <div id="map"></div>
     <div id="info-box">
-      <div>Information:</div>
+      <div><b>Information</b></div>
       <div id="dests">?</div>
     </div>
+    <div id="instructions">
+      Click on a green flag to choose a starting-point.<br />
+      Red flags show destinations from your chosen start point.<br />
+      Shaded polygons show the ratio of travel time when driving or taking public transport.<br />
+      Click on anywhere to see all start-points again<br />
+      Learn more <a href="/faq">here</a>
+    </div>
+    <div id="reset"><b>Show all start points.</b></div>
     <script>
 
       var map;
@@ -90,7 +118,7 @@
                     "; Destinations: " + event.feature.getProperty('num_dest');
           }
           else if (event.feature.getProperty('isPolygon')) {
-            content = "Ratio (driving/publictransport): " + event.feature.getProperty('ratio');
+            content = "Ratio (time to drive / time on public transport): " + event.feature.getProperty('ratio');
           }
           else if (event.feature.getProperty('isDestination')) {
             content = "Location: " + event.feature.getProperty('location') +

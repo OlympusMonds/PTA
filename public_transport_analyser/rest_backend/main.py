@@ -18,6 +18,11 @@ def index():
     return pta.send_static_file("origins.html")
 
 
+@pta.route("/faq")
+def faq():
+    return pta.send_static_file("faq.html")
+
+
 class FetchAllOrigins(Resource):
     @cache.cached(timeout=300)
     def get(self):
