@@ -14,19 +14,8 @@ from public_transport_analyser.database.database import Origin, Destination, Tri
 
 def mess():
     with pny.db_session:
-        o = Origin["-33.886,151.22"]
-        for d in o.destinations:
-            print(d.location)
-            driving = -1
-            transit = -1
-            for t in d.trips:
-                if t.time == 6:
-                    if t.mode == "driving":
-                        driving = t.duration
-                    else:
-                        transit = t.duration
-            ratio = float(driving) / float(transit)
-            print("\t", ratio, "\n")
+        o = Origin.select_random(limit=1)[0]
+        print(o.location)
 
 
 

@@ -78,6 +78,7 @@ def request_urls(max_daily_requests, bad_routes, url_queue, data_queue):
         if time_passed >= day_in_sec:
             logger.info("24 hours passed. Resetting count to new day.")
             total_requests_today = 0
+            request_rate = day_in_sec / max_daily_requests
             start_time = datetime.datetime.now()
 
         if total_requests_today >= max_daily_requests:

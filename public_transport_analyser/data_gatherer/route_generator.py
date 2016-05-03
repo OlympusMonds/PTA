@@ -1,9 +1,11 @@
 import random
 import logging
+import pony.orm as pny
 from public_transport_analyser.data_gatherer.url_generator import get_info_for_route
+from public_transport_analyser.database.database import Origin
 
 
-def generate_routes(name, bounding_box, map_resolution, url_queue):
+def generate_routes(name, bounding_box, map_resolution, reuse_origins, url_queue):
     logger = logging.getLogger('PTA.gen_routes  ')
     minlat, minlon = bounding_box["minlat"], bounding_box["minlon"]
     maxlat, maxlon = bounding_box["maxlat"], bounding_box["maxlon"]
@@ -12,11 +14,19 @@ def generate_routes(name, bounding_box, map_resolution, url_queue):
     deltalon = maxlon - minlon
 
     while True:
-        # Get a random origin within the bounding box, and then round to the
-        # map resolution.
-        new_o_lat = round(minlat + (random.random() * deltalat), map_resolution)
-        new_o_lon = round(minlon + (random.random() * deltalon), map_resolution)
-        origin = "{0},{1}".format(new_o_lat, new_o_lon)
+        if reuse_origins:
+            # Get a random existing origin
+            # TODO: this doesn't obey the bounding box
+            with pny.db_session:
+                origin = Origin.select_random(limit=1)[0]
+                o_lat, o_lon = origin.location.split(",")
+        else:
+            # Get a random origin within the bounding box, and then round to the
+            # map resolution.
+            o_lat = round(minlat + (random.random() * deltalat), map_resolution)
+            o_lon = round(minlon + (random.random() * deltalon), map_resolution)
+
+        origin = "{0},{1}".format(o_lat, o_lon)
         logger.info("{name} picked origin: {origin}".format(name=name, origin=origin))
 
         for _ in range(10):

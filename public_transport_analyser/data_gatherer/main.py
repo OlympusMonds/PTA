@@ -44,7 +44,8 @@ def main():
     for name, bb in bounding_boxes.items():
         for i in range(int(bb["weight"])):
             tname = "{name} {index}".format(name=name, index=i)
-            route_thread = Thread(target=generate_routes, args=(tname, bb, map_resolution, url_queue,))
+            route_thread = Thread(target=generate_routes, args=(tname, bb, map_resolution,
+                                                                bb["reuse_origins"], url_queue,))
             route_thread.start()
     logger.info("Created route generating threads")
 
