@@ -22,26 +22,6 @@
         position: absolute;
         left: 30px;
       }
-      #instructions {
-        background-color: white;
-        border: 1px solid black;
-        top: 30px;
-        width: 300px;
-        padding: 10px;
-        position: absolute;
-        right: 30px;
-        font-size: 80%;
-      }
-      #reset {
-        background-color: #37ba44;
-        border: 2px solid #000000;
-        top: 10px;
-        padding: 10px;
-        position: absolute;
-        left: 120px;
-        font-size: 80%;
-        color: #ffffff;
-      }
     </style>
   </head>
   <body>
@@ -50,23 +30,22 @@
       <div><b>Information</b></div>
       <div id="dests">?</div>
     </div>
-    <div id="instructions">
-      Click on a green flag to choose a starting-point.<br />
-      Red flags show destinations from your chosen start point.<br />
-      Shaded polygons show the ratio of travel time when driving or taking public transport.<br />
-      Click on anywhere to see all start-points again<br />
-      Learn more <a href="/faq">here</a>
-    </div>
-    <div id="reset"><b>Show all start points.</b></div>
     <script>
 
       var map;
       var origins;
+
+      function rgbToHex(r, g, b) {
+            // http://stackoverflow.com/a/5624139
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+      }
+
       function clearMap() {
         map.data.forEach(function (feature) {
               map.data.remove(feature);
         });
       }
+
       function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
           zoom: 12,
@@ -97,9 +76,27 @@
              });
           }
           else if (feature.getProperty('isPolygon')) {
+              var ratiocolour;
+              var ratio = feature.getProperty('ratio');
+              var opacity = 0.4;
+              if (ratio == -1){
+                  ratiocolour = "#000000";
+                  opacity = 1.0;
+              }
+              else if (ratio <= 1.0) {
+                  ratiocolour = rgbToHex(255, Math.round(ratio*255), Math.round(ratio*255));
+                  opacity = 0.2 + (0.4 * (1.-ratio));
+              }
+              else {
+                  ratio = 2.0;
+                  ratiocolour = rgbToHex(Math.round((1-(ratio-1.))*255), Math.round((1-(ratio-1.))*255), 255);
+                  opacity = 0.2 + (0.4 * (1-(ratio-1.)));
+              }
+
             return /** @type {google.maps.Data.StyleOptions} */({
-              fillColor: feature.getProperty('ratiocolor'),
-              strokeWeight: 1,
+                fillColor: ratiocolour,
+                strokeWeight: 1,
+                fillOpacity: opacity,
             });
           }
           else if (feature.getProperty('isDestination')) {
@@ -112,19 +109,27 @@
 
         // Set mouseover event for each feature.
         map.data.addListener('mouseover', function(event) {
-          var content = "";
-          if (event.feature.getProperty('isOrigin')) {
-            content = "Location: " + event.feature.getProperty('location') +
-                    "; Destinations: " + event.feature.getProperty('num_dest');
-          }
-          else if (event.feature.getProperty('isPolygon')) {
-            content = "Ratio (time to drive / time on public transport): " + event.feature.getProperty('ratio');
-          }
-          else if (event.feature.getProperty('isDestination')) {
-            content = "Location: " + event.feature.getProperty('location') +
-                    "; Trips: " + event.feature.getProperty('trips');
-          }
-          document.getElementById('dests').textContent = content;
+            var content = "";
+            if (event.feature.getProperty('isOrigin')) {
+              content = "Location: " + event.feature.getProperty('location') +
+                      "; Destinations: " + event.feature.getProperty('num_dest');
+            }
+            else if (event.feature.getProperty('isPolygon')) {
+               var ratio = event.feature.getProperty('ratio');
+               if (ratio == -1) {
+                  content = "No data available."
+               }
+               else if (ratio < 1) {
+                  content = "It is " + (1.0/ratio).toFixed(2) + " times slower to catch public transport than to drive";
+               }
+               else {
+                  content = "It is " + (1.0/ratio).toFixed(2) + " times faster to catch public transport than to drive";
+               }
+            }
+            else if (event.feature.getProperty('isDestination')) {
+              content = "Destination coordinates: " + event.feature.getProperty('location');
+            }
+            document.getElementById('dests').textContent = content;
         });
 
         map.data.addListener('click', function(event) {
