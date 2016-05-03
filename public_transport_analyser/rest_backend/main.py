@@ -112,7 +112,8 @@ class FetchOrigin(Resource):
                 properties = {"ratio": ratio,
                               "isDestination": True,
                               "location": (dlon, dlat)}
-                features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
+                if ratio != -1:
+                    features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
 
             # Plot the destination map
             regions, vertices = get_voronoi_map(destinations)
@@ -121,6 +122,8 @@ class FetchOrigin(Resource):
                 ratio = destinations[i][2]
                 properties = {"isPolygon": True,
                               "ratio": ratio}
+                if ratio == -1:
+                    continue
                 points = [(lon, lat) for lon, lat in vertices[region]]  # TODO: do some rounding to save bandwidth
                 points.append(points[0])  # close off the polygon
 
