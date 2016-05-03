@@ -142,8 +142,8 @@ class FetchOrigin(Resource):
 api.add_resource(FetchAllOrigins, '/api/origins')
 api.add_resource(FetchOrigin, '/api/origin/<string:origin>')
 
+init()  # Start up the DB
 
 if __name__ == "__main__":
-    init()
     pta.debug = False
     pta.run(host='0.0.0.0')
