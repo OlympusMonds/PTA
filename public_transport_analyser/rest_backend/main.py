@@ -69,8 +69,8 @@ class FetchAllOrigins(Resource):
 class FetchOrigin(Resource):
     def get(self, origin, time = 6):
 
-        retrycount = 0
-        while retrycount < 2:
+        retrycount = 3
+        for _ in range(retrycount):
             destinations = []
 
             try:
@@ -100,7 +100,9 @@ class FetchOrigin(Resource):
                         destinations.append((dlon, dlat, ratio))
                 break
             except pny.core.RollbackException as re:
-                retrycount += 1
+                logger.error("Bad DB hit. Retrying:\n{}".format(re))
+        else:
+            logger.error("DB failed bigtime.")
 
         # Build GeoJSON features
         # Plot the origin point
