@@ -67,63 +67,71 @@ class FetchAllOrigins(Resource):
 
 
 class FetchOrigin(Resource):
-    def get(self, origin):
-        destinations = []
-        time = 6
+    def get(self, origin, time = 6):
+
+        retrycount = 0
+        while retrycount < 2:
+            destinations = []
+
+            try:
+                with pny.db_session:
+                    try:
+                        o = Origin[origin]
+                    except pny.ObjectNotFound:
+                        # TODO: use response codes
+                        raise ValueError("No such origin.")
+
+                    num_dest = len(o.destinations)
+                    for d in o.destinations:
+                        dlat, dlon = map(float, d.location.split(","))
+
+                        driving = -1
+                        transit = -1
+                        for t in d.trips:
+                            if t.mode == "driving":
+                                driving = t.duration
+                            elif t.time == time:
+                                transit = t.duration
+
+                        ratio = -1.0
+                        if driving > 0 and transit > 0:
+                            ratio = float(driving) / float(transit)
+
+                        destinations.append((dlon, dlat, ratio))
+                break
+            except pny.core.RollbackException as re:
+                retrycount += 1
+
+        # Build GeoJSON features
+        # Plot the origin point
+        features = []
+        olat, olon = map(float, origin.split(","))
+        properties = {"isOrigin": True,
+                      "num_dest": num_dest,  # TODO: this is why clicking fails
+                      "location": (olat, olon),
+                      }
+        features.append(geojson.Feature(geometry=geojson.Point((olon, olat)), properties=properties))
+
+        # Plot the destination points
+        for details in destinations:
+            dlon, dlat, ratio = details
+            if ratio == -1:
+                continue
+            properties = {"ratio": ratio,
+                          "isDestination": True,
+                          "location": (dlon, dlat)}
+            features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
+
+        # Plot the destination map
         try:
-            with pny.db_session:
-                if Origin.exists(location=origin):
-                    o = Origin.get(location=origin)
-                else:
-                    # TODO: use response codes
-                    raise ValueError("No such origin.")
-
-                num_dest = len(o.destinations)
-                for d in o.destinations:
-                    dlat, dlon = map(float, d.location.split(","))
-
-                    driving = -1
-                    transit = -1
-                    for t in d.trips:
-                        if t.mode == "driving":
-                            driving = t.duration
-                        elif t.time == time:
-                            transit = t.duration
-
-                    ratio = -1.0
-                    if driving > 0 and transit > 0:
-                        ratio = float(driving) / float(transit)
-
-                    destinations.append((dlon, dlat, ratio))
-
-            # Build GeoJSON features
-            # Plot the origin point
-            features = []
-            olat, olon = map(float, origin.split(","))
-            properties = {"isOrigin": True,
-                          "num_dest": num_dest,  # TODO: this is why clicking fails
-                          "location": (olat, olon),
-                          }
-            features.append(geojson.Feature(geometry=geojson.Point((olon, olat)), properties=properties))
-
-            # Plot the destination points
-            for details in destinations:
-                dlon, dlat, ratio = details
-                properties = {"ratio": ratio,
-                              "isDestination": True,
-                              "location": (dlon, dlat)}
-                if ratio != -1:
-                    features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
-
-            # Plot the destination map
             regions, vertices = get_voronoi_map(destinations)
 
             for i, region in enumerate(regions):
                 ratio = destinations[i][2]
-                properties = {"isPolygon": True,
-                              "ratio": ratio}
                 if ratio == -1:
                     continue
+                properties = {"isPolygon": True,
+                              "ratio": ratio}
                 points = [(lon, lat) for lon, lat in vertices[region]]  # TODO: do some rounding to save bandwidth
                 points.append(points[0])  # close off the polygon
 
