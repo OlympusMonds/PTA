@@ -40,30 +40,35 @@ class FetchAllOrigins(Resource):
     def get(self):
         logger.info("Get all origins")
         lonlats = []
-        try:
-            with pny.db_session:
-                origins = pny.select(o for o in Origin)[:]
+        retrycount = 3
+        for _ in range(retrycount):
+            try:
+                with pny.db_session:
+                    origins = pny.select(o for o in Origin)[:]
 
-                for o in origins:
-                    lat, lon = map(float, o.location.split(","))
-                    lonlats.append((lon, lat, len(o.destinations)))
-
-            features = []
-            for lon, lat, num_dest in lonlats:
-                properties = {"num_dest": num_dest,
+                    for o in origins:
+                        lat, lon = map(float, o.location.split(","))
+                        lonlats.append((lon, lat, len(o.destinations)))
+                break;
+            except ValueError as ve:
+                properties = {"num_dest": -1,
                               "isOrigin": True,
-                              "location": ",".join(map(str, (lat,lon)))}  # ""{}".format(origin),}
-                features.append(geojson.Feature(geometry=geojson.Point((lon, lat)), properties=properties))
+                              "location": "error! reload page."}
+                f = geojson.Feature(geometry=geojson.Point((151.2, -33.9)), properties=properties)
+                return geojson.FeatureCollection([f, ])
+            except pny.core.RollbackException as re:
+                logger.error("Bad DB hit. Retrying:\n{}".format(re))
+        else:
+            logger.error("DB failed bigtime.")
 
-            fc = geojson.FeatureCollection(features)
-
-        except ValueError as ve:
+        features = []
+        for lon, lat, num_dest in lonlats:
             properties = {"num_dest": num_dest,
                           "isOrigin": True,
-                          "location": "error! reload page."}
-            f = geojson.Feature(geometry=geojson.Point((151.2,-33.9)), properties=properties)
-            fc = geojson.FeatureCollection([f,])
-        return fc
+                          "location": ",".join(map(str, (lat,lon)))}  # ""{}".format(origin),}
+            features.append(geojson.Feature(geometry=geojson.Point((lon, lat)), properties=properties))
+
+        return geojson.FeatureCollection(features)
 
 
 class FetchOrigin(Resource):
