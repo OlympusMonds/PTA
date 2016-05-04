@@ -49,7 +49,7 @@ class FetchAllOrigins(Resource):
                     for o in origins:
                         lat, lon = map(float, o.location.split(","))
                         lonlats.append((lon, lat, len(o.destinations)))
-                break;
+                break
             except ValueError as ve:
                 properties = {"num_dest": -1,
                               "isOrigin": True,
@@ -65,7 +65,7 @@ class FetchAllOrigins(Resource):
         for lon, lat, num_dest in lonlats:
             properties = {"num_dest": num_dest,
                           "isOrigin": True,
-                          "location": ",".join(map(str, (lat,lon)))}  # ""{}".format(origin),}
+                          "location": ",".join(map(str, (lat,lon)))}
             features.append(geojson.Feature(geometry=geojson.Point((lon, lat)), properties=properties))
 
         return geojson.FeatureCollection(features)
