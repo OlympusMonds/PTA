@@ -39,9 +39,11 @@ class FetchAllOrigins(Resource):
     @cache.cached(timeout=300)
     def get(self):
         logger.info("Get all origins")
-        lonlats = []
+
+        # Get info from DB
         retrycount = 3
         for _ in range(retrycount):
+            lonlats = []
             try:
                 with pny.db_session:
                     origins = pny.select(o for o in Origin)[:]
@@ -49,18 +51,24 @@ class FetchAllOrigins(Resource):
                     for o in origins:
                         lat, lon = map(float, o.location.split(","))
                         lonlats.append((lon, lat, len(o.destinations)))
-                break
+
+                break  # DB access went OK, no need to retry
+
             except ValueError as ve:
                 properties = {"num_dest": -1,
                               "isOrigin": True,
                               "location": "error! reload page."}
                 f = geojson.Feature(geometry=geojson.Point((151.2, -33.9)), properties=properties)
                 return geojson.FeatureCollection([f, ])
+
             except pny.core.RollbackException as re:
                 logger.error("Bad DB hit. Retrying:\n{}".format(re))
-        else:
-            logger.error("DB failed bigtime.")
 
+        else:
+            logger.error("DB failed bigtime.")  # for loop did not break.
+            # TODO: deal with this error
+
+        # Prepare GeoJSON
         features = []
         for lon, lat, num_dest in lonlats:
             properties = {"num_dest": num_dest,
@@ -73,7 +81,9 @@ class FetchAllOrigins(Resource):
 
 class FetchOrigin(Resource):
     def get(self, origin, time = 6):
+        logger.info("Get origins: {}".format(origin))
 
+        # Get info from DB
         retrycount = 3
         for _ in range(retrycount):
             destinations = []
@@ -108,13 +118,14 @@ class FetchOrigin(Resource):
                 logger.error("Bad DB hit. Retrying:\n{}".format(re))
         else:
             logger.error("DB failed bigtime.")
+            # TODO: deal with this error
 
         # Build GeoJSON features
         # Plot the origin point
         features = []
         olat, olon = map(float, origin.split(","))
         properties = {"isOrigin": True,
-                      "num_dest": num_dest,  # TODO: this is why clicking fails
+                      "num_dest": num_dest,
                       "location": (olat, olon),
                       }
         features.append(geojson.Feature(geometry=geojson.Point((olon, olat)), properties=properties))
@@ -123,7 +134,7 @@ class FetchOrigin(Resource):
         for details in destinations:
             dlon, dlat, ratio = details
             if ratio == -1:
-                continue
+                continue  # Don't send bad data
             properties = {"ratio": ratio,
                           "isDestination": True,
                           "location": (dlon, dlat)}
@@ -144,21 +155,14 @@ class FetchOrigin(Resource):
 
                 features.append(geojson.Feature(geometry=geojson.Polygon([points]),
                                                 properties=properties, ))
-
-            fc = geojson.FeatureCollection(features)
-
         except ValueError as ve:
-            properties = {"isOrigin": True,
-                          "num_dest": -1,
-                          "location": "error! reload page.",
-                          }
-            f = geojson.Feature(geometry=geojson.Point((151.2,-33.9)), properties=properties)
-            fc = geojson.FeatureCollection([f,])
-        return fc
+            logger.error("Voronoi function failed. Only sending destinations.")
+
+        return geojson.FeatureCollection(features)
 
 
 api.add_resource(FetchAllOrigins, '/api/origins')
-api.add_resource(FetchOrigin, '/api/origin/<string:origin>')
+api.add_resource(FetchOrigin, '/api/origin/<string:origin>/<int:time>')
 
 init()  # Start up the DB
 

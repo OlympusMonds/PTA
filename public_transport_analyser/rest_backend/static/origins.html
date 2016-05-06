@@ -16,13 +16,29 @@
         #info-box {
             background-color: white;
             border: 1px solid black;
-            bottom: 30px;
+            top: 30px;
             height: 30px;
             padding: 10px;
             position: absolute;
             left: 30px;
         }
+        #sliderinfo {
+            background-color: white;
+            border: 1px solid black;
+            bottom: 30px;
+            height: 50px;
+            width: 250px;
+            padding: 10px;
+            position: absolute;
+            left: 30px;
+        }
+        #sliderinfo {
+            padding: 10px;
+        }
     </style>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+    <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 </head>
 <body>
 <div id="map"></div>
@@ -30,8 +46,23 @@
     <div><b>Information</b></div>
     <div id="info">Loading data...</div>
 </div>
+
+<div id="sliderinfo">
+    <form id="reservation">
+      <label for="daytime">Time of day</label>
+      <select name="daytime" id="daytime">
+        <option>6</option>
+        <option>8</option>
+        <option>12</option>
+        <option>17</option>
+        <option>21</option>
+      </select>
+    </form>
+</div>
+
 <script src="/static/js/render.js">
 </script>
+
 <script async defer
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDutbFRnQ6ZUJPq8P8lWZySu4LyYrAAbdE&callback=initMap">
 </script>

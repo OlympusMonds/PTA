@@ -4,6 +4,7 @@
 
 var map;
 var origins;
+var time = 6;
 
 function rgbToHex(r, g, b) {
     // http://stackoverflow.com/a/5624139
@@ -33,11 +34,30 @@ function loadGeoJson(url, options) {
     return promise;
 }
 
+$(function() {
+    var select = $( "#daytime" );
+    var slider = $( "<div id='slider'></div>" ).insertAfter( select ).slider({
+      min: 1,
+      max: 5,
+      range: "min",
+      value: select[ 0 ].selectedIndex + 1,
+      slide: function( event, ui ) {
+        select[ 0 ].selectedIndex = ui.value - 1;
+        time = $('#daytime option:selected').text();
+      }
+    });
+    $( "#daytime" ).change(function() {
+        slider.slider( "value", this.selectedIndex + 1 );
+        time = $('#daytime option:selected').text();
+    });
+  });
 
 function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 11,
-        center: {lat: -33.9, lng: 151.2}
+        center: {lat: -33.9, lng: 151.2},
+        mapTypeControl: false,
+        streetViewControl: false,
     });
 
     // Load GeoJSON
@@ -134,7 +154,7 @@ function initMap() {
             origin = event.feature.getProperty('location');
 
             // Load GeoJSON
-            var promise = loadGeoJson('/api/origin/' + origin);
+            var promise = loadGeoJson('/api/origin/' + origin + '/' + time);
             promise.then(function (features) {
                 //document.getElementById('info').textContent = "Loading succeeded. Click on a flag to begin.";
             });
