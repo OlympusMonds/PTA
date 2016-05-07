@@ -43,14 +43,9 @@ class FetchAllOrigins(Resource):
         # Get info from DB
         retrycount = 3
         for _ in range(retrycount):
-            lonlats = []
             try:
                 with pny.db_session:
-                    origins = pny.select(o for o in Origin)[:]
-
-                    for o in origins:
-                        lat, lon = map(float, o.location.split(","))
-                        lonlats.append((lon, lat, len(o.destinations)))
+                    origins = pny.select((o.location, pny.count(o.destinations)) for o in Origin)[:]
 
                 break  # DB access went OK, no need to retry
 
@@ -70,7 +65,8 @@ class FetchAllOrigins(Resource):
 
         # Prepare GeoJSON
         features = []
-        for lon, lat, num_dest in lonlats:
+        for location, num_dest in origins:
+            lat, lon = map(float, location.split(","))
             properties = {"num_dest": num_dest,
                           "isOrigin": True,
                           "location": ",".join(map(str, (lat,lon)))}
