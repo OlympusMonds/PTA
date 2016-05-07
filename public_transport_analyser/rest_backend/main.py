@@ -38,15 +38,18 @@ def faq():
 class FetchAllOrigins(Resource):
     @cache.cached(timeout=300)
     def get(self):
-        logger.info("Get all origins")
+        logger = logging.getLogger('PTA.flask.get_all_origins')
+        logger.info("Start")
 
         # Get info from DB
         retrycount = 3
         for _ in range(retrycount):
             try:
+                logger.info("Fetch from DB")
                 with pny.db_session:
                     origins = pny.select((o.location, pny.count(o.destinations)) for o in Origin)[:]
 
+                logger.info("DB access went OK.")
                 break  # DB access went OK, no need to retry
 
             except ValueError as ve:
@@ -54,6 +57,7 @@ class FetchAllOrigins(Resource):
                               "isOrigin": True,
                               "location": "error! reload page."}
                 f = geojson.Feature(geometry=geojson.Point((151.2, -33.9)), properties=properties)
+                logger.info("DB fetch failed, returning error point.")
                 return geojson.FeatureCollection([f, ])
 
             except pny.core.RollbackException as re:
@@ -64,6 +68,7 @@ class FetchAllOrigins(Resource):
             # TODO: deal with this error
 
         # Prepare GeoJSON
+        logger.info("Preparing GeoJSON")
         features = []
         for location, num_dest in origins:
             lat, lon = map(float, location.split(","))
@@ -72,12 +77,14 @@ class FetchAllOrigins(Resource):
                           "location": ",".join(map(str, (lat,lon)))}
             features.append(geojson.Feature(geometry=geojson.Point((lon, lat)), properties=properties))
 
+        logger.info("GeoJSON built.")
         return geojson.FeatureCollection(features)
 
 
 class FetchOrigin(Resource):
     def get(self, origin, time = 6):
-        logger.info("Get origins: {}".format(origin))
+        logger = logging.getLogger('PTA.flask.get_origin')
+        logger.info("Get origin: {} at time: {}".format(origin, time))
 
         # Get info from DB
         retrycount = 3
@@ -85,11 +92,13 @@ class FetchOrigin(Resource):
             destinations = []
 
             try:
+                logger.info("Fetch from DB")
                 with pny.db_session:
                     try:
                         o = Origin[origin]
                     except pny.ObjectNotFound:
                         # TODO: use response codes
+                        logger.error("No such origin {}.".format(origin))
                         raise ValueError("No such origin.")
 
                     num_dest = len(o.destinations)
@@ -109,6 +118,8 @@ class FetchOrigin(Resource):
                             ratio = float(driving) / float(transit)
 
                         destinations.append((dlon, dlat, ratio))
+
+                logger.info("DB access went OK.")
                 break
             except pny.core.RollbackException as re:
                 logger.error("Bad DB hit. Retrying:\n{}".format(re))
@@ -118,6 +129,7 @@ class FetchOrigin(Resource):
 
         # Build GeoJSON features
         # Plot the origin point
+        logger.info("Preparing GeoJSON")
         features = []
         olat, olon = map(float, origin.split(","))
         properties = {"isOrigin": True,
@@ -126,6 +138,7 @@ class FetchOrigin(Resource):
                       }
         features.append(geojson.Feature(geometry=geojson.Point((olon, olat)), properties=properties))
 
+        logger.info("Preparing GeoJSON for destinations")
         # Plot the destination points
         for details in destinations:
             dlon, dlat, ratio = details
@@ -136,6 +149,7 @@ class FetchOrigin(Resource):
                           "location": (dlon, dlat)}
             features.append(geojson.Feature(geometry=geojson.Point((dlon, dlat)), properties=properties))
 
+        logger.info("Preparing GeoJSON with Voronoi")
         # Plot the destination map
         try:
             regions, vertices = get_voronoi_map(destinations)
@@ -154,6 +168,7 @@ class FetchOrigin(Resource):
         except ValueError as ve:
             logger.error("Voronoi function failed. Only sending destinations.")
 
+        logger.info("GeoJSON built.")
         return geojson.FeatureCollection(features)
 
 
