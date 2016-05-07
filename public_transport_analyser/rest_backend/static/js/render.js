@@ -125,8 +125,7 @@ function initMap() {
     map.data.addListener('mouseover', function(event) {
         var content = "";
         if (event.feature.getProperty('isOrigin')) {
-            content = "Location: " + event.feature.getProperty('location') +
-                    "; Destinations: " + event.feature.getProperty('num_dest');
+            content = "Location: " + event.feature.getProperty('location');
         }
         else if (event.feature.getProperty('isPolygon')) {
             var ratio = event.feature.getProperty('ratio');

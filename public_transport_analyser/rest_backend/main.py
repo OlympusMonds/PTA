@@ -45,12 +45,11 @@ class FetchAllOrigins(Resource):
         try:
             logger.info("Fetch from DB")
             with pny.db_session(retry_exceptions=pny.core.RollbackException):
-                origins = pny.select((o.location, pny.count(o.destinations)) for o in Origin)[:]
+                origins = pny.select(o.location for o in Origin)[:]
             logger.info("DB access went OK.")
 
         except ValueError as ve:
-            properties = {"num_dest": -1,
-                          "isOrigin": True,
+            properties = {"isOrigin": True,
                           "location": "error! reload page."}
             f = geojson.Feature(geometry=geojson.Point((151.2, -33.9)), properties=properties)
             logger.info("DB fetch failed, returning error point.")
@@ -62,10 +61,9 @@ class FetchAllOrigins(Resource):
         # Prepare GeoJSON
         logger.info("Preparing GeoJSON")
         features = []
-        for location, num_dest in origins:
+        for location in origins:
             lat, lon = map(float, location.split(","))
-            properties = {"num_dest": num_dest,
-                          "isOrigin": True,
+            properties = {"isOrigin": True,
                           "location": ",".join(map(str, (lat,lon)))}
             features.append(geojson.Feature(geometry=geojson.Point((lon, lat)), properties=properties))
 
@@ -80,6 +78,8 @@ class FetchOrigin(Resource):
 
         # Get info from DB
         destinations = []
+
+        # TODO: use prefetching: https://docs.ponyorm.com/queries.html#Query.prefetch
 
         try:
             logger.info("Fetch from DB")
