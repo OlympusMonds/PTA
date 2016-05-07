@@ -42,30 +42,22 @@ class FetchAllOrigins(Resource):
         logger.info("Start")
 
         # Get info from DB
-        retrycount = 3
-        for _ in range(retrycount):
-            try:
-                logger.info("Fetch from DB")
-                with pny.db_session:
-                    origins = pny.select((o.location, pny.count(o.destinations)) for o in Origin)[:]
+        try:
+            logger.info("Fetch from DB")
+            with pny.db_session(retry_exceptions=pny.core.RollbackException):
+                origins = pny.select((o.location, pny.count(o.destinations)) for o in Origin)[:]
+            logger.info("DB access went OK.")
 
-                logger.info("DB access went OK.")
-                break  # DB access went OK, no need to retry
+        except ValueError as ve:
+            properties = {"num_dest": -1,
+                          "isOrigin": True,
+                          "location": "error! reload page."}
+            f = geojson.Feature(geometry=geojson.Point((151.2, -33.9)), properties=properties)
+            logger.info("DB fetch failed, returning error point.")
+            return geojson.FeatureCollection([f, ])
 
-            except ValueError as ve:
-                properties = {"num_dest": -1,
-                              "isOrigin": True,
-                              "location": "error! reload page."}
-                f = geojson.Feature(geometry=geojson.Point((151.2, -33.9)), properties=properties)
-                logger.info("DB fetch failed, returning error point.")
-                return geojson.FeatureCollection([f, ])
-
-            except pny.core.RollbackException as re:
-                logger.error("Bad DB hit. Retrying:\n{}".format(re))
-
-        else:
-            logger.error("DB failed bigtime.")  # for loop did not break.
-            # TODO: deal with this error
+        except pny.core.RollbackException as re:
+            logger.error("Bad DB hit. Retrying:\n{}".format(re))
 
         # Prepare GeoJSON
         logger.info("Preparing GeoJSON")
@@ -87,45 +79,39 @@ class FetchOrigin(Resource):
         logger.info("Get origin: {} at time: {}".format(origin, time))
 
         # Get info from DB
-        retrycount = 3
-        for _ in range(retrycount):
-            destinations = []
+        destinations = []
 
-            try:
-                logger.info("Fetch from DB")
-                with pny.db_session:
-                    try:
-                        o = Origin[origin]
-                    except pny.ObjectNotFound:
-                        # TODO: use response codes
-                        logger.error("No such origin {}.".format(origin))
-                        raise ValueError("No such origin.")
+        try:
+            logger.info("Fetch from DB")
+            with pny.db_session(retry_exceptions=pny.core.RollbackException):
+                try:
+                    o = Origin[origin]
+                except pny.ObjectNotFound:
+                    # TODO: use response codes
+                    logger.error("No such origin {}.".format(origin))
+                    raise ValueError("No such origin.")
 
-                    num_dest = len(o.destinations)
-                    for d in o.destinations:
-                        dlat, dlon = map(float, d.location.split(","))
+                num_dest = len(o.destinations)
+                for d in o.destinations:
+                    dlat, dlon = map(float, d.location.split(","))
 
-                        driving = -1
-                        transit = -1
-                        for t in d.trips:
-                            if t.mode == "driving":
-                                driving = t.duration
-                            elif t.time == time:
-                                transit = t.duration
+                    driving = -1
+                    transit = -1
+                    for t in d.trips:
+                        if t.mode == "driving":
+                            driving = t.duration
+                        elif t.time == time:
+                            transit = t.duration
 
-                        ratio = -1.0
-                        if driving > 0 and transit > 0:
-                            ratio = float(driving) / float(transit)
+                    ratio = -1.0
+                    if driving > 0 and transit > 0:
+                        ratio = float(driving) / float(transit)
 
-                        destinations.append((dlon, dlat, ratio))
+                    destinations.append((dlon, dlat, ratio))
 
-                logger.info("DB access went OK.")
-                break
-            except pny.core.RollbackException as re:
-                logger.error("Bad DB hit. Retrying:\n{}".format(re))
-        else:
-            logger.error("DB failed bigtime.")
-            # TODO: deal with this error
+            logger.info("DB access went OK.")
+        except pny.core.RollbackException as re:
+            logger.error("Bad DB hit. Retrying:\n{}".format(re))
 
         # Build GeoJSON features
         # Plot the origin point
