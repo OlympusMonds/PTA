@@ -44,7 +44,7 @@ class FetchAllOrigins(Resource):
         # Get info from DB
         try:
             logger.info("Fetch from DB")
-            with pny.db_session(retry_exceptions=pny.core.RollbackException):
+            with pny.db_session(retry_exceptions=[pny.core.RollbackException,]):
                 origins = pny.select(o.location for o in Origin)[:]
             logger.info("DB access went OK.")
 
@@ -83,7 +83,7 @@ class FetchOrigin(Resource):
 
         try:
             logger.info("Fetch from DB")
-            with pny.db_session(retry_exceptions=pny.core.RollbackException):
+            with pny.db_session(retry_exceptions=[pny.core.RollbackException,]):
                 try:
                     o = Origin[origin]
                 except pny.ObjectNotFound:
@@ -91,7 +91,6 @@ class FetchOrigin(Resource):
                     logger.error("No such origin {}.".format(origin))
                     raise ValueError("No such origin.")
 
-                num_dest = len(o.destinations)
                 for d in o.destinations:
                     dlat, dlon = map(float, d.location.split(","))
 
@@ -119,7 +118,6 @@ class FetchOrigin(Resource):
         features = []
         olat, olon = map(float, origin.split(","))
         properties = {"isOrigin": True,
-                      "num_dest": num_dest,
                       "location": (olat, olon),
                       }
         features.append(geojson.Feature(geometry=geojson.Point((olon, olat)), properties=properties))
@@ -128,8 +126,8 @@ class FetchOrigin(Resource):
         # Plot the destination points
         for details in destinations:
             dlon, dlat, ratio = details
-            if ratio == -1:
-                continue  # Don't send bad data
+            #if ratio == -1:
+            #    continue  # Don't send bad data
             properties = {"ratio": ratio,
                           "isDestination": True,
                           "location": (dlon, dlat)}
@@ -142,8 +140,8 @@ class FetchOrigin(Resource):
 
             for i, region in enumerate(regions):
                 ratio = destinations[i][2]
-                if ratio == -1:
-                    continue
+                #if ratio == -1:
+                #    continue
                 properties = {"isPolygon": True,
                               "ratio": ratio}
                 points = [(lon, lat) for lon, lat in vertices[region]]  # TODO: do some rounding to save bandwidth

@@ -2,38 +2,7 @@
  * Created by luke on 4/05/16.
  */
 
-var map;
-var origins;
-var time = 6;
-
-function rgbToHex(r, g, b) {
-    // http://stackoverflow.com/a/5624139
-    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-}
-
-function clearMap() {
-    map.data.forEach(function (feature) {
-        map.data.remove(feature);
-    });
-}
-
-function showOrigins() {
-    map.data.addGeoJson(origins);
-}
-
-function loadGeoJson(url, options) {
-    var promise = new Promise(function (resolve, reject) {
-        try {
-            map.data.loadGeoJson(url, options, function (features) {
-                resolve(features);
-            });
-        } catch (e) {
-            reject(e);
-        }
-    });
-    return promise;
-}
-
+// Make time slider
 $(function() {
     var select = $( "#daytime" );
     var slider = $( "<div id='slider'></div>" ).insertAfter( select ).slider({
@@ -51,6 +20,57 @@ $(function() {
         time = $('#daytime option:selected').text();
     });
   });
+
+
+var map;
+var origins;
+var time = 6;
+
+
+function rgbToHex(r, g, b) {
+    // http://stackoverflow.com/a/5624139
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+
+function clearMap() {
+    map.data.forEach(function (feature) {
+        map.data.remove(feature);
+    });
+}
+
+
+function showOrigins() {
+    map.data.addGeoJson(origins);
+}
+
+
+function loadGeoJson(url, options) {
+    var promise = new Promise(function (resolve, reject) {
+        try {
+            map.data.loadGeoJson(url, options, function (features) {
+                resolve(features);
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+    return promise;
+}
+
+
+function ratioText(ratio){
+    if (ratio == -1) {
+        return "No data available."
+    }
+    else if (ratio < 1) {
+        return "It is " + (1.0/ratio).toFixed(2) + " times slower to catch public transport than to drive";
+    }
+    else {
+        return "It is " + (1.0/ratio).toFixed(2) + " times faster to catch public transport than to drive";
+    }
+}
+
 
 function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
@@ -97,7 +117,11 @@ function initMap() {
             var ratio = feature.getProperty('ratio');
             var opacity = 0.4;
             
-            if (ratio <= 1.0) {
+            if (ratio == -1) {
+                ratiocolour = rgbToHex(0, 0, 0);
+                opacity = 0.6;
+            }
+            else if (ratio <= 1.0) {
                 ratiocolour = rgbToHex(255, Math.round(ratio*255), Math.round(ratio*255));
                 opacity = 0.2 + (0.4 * (1.-ratio));
             }
@@ -128,19 +152,11 @@ function initMap() {
             content = "Location: " + event.feature.getProperty('location');
         }
         else if (event.feature.getProperty('isPolygon')) {
-            var ratio = event.feature.getProperty('ratio');
-            if (ratio == -1) {
-                content = "No data available."
-            }
-            else if (ratio < 1) {
-                content = "It is " + (1.0/ratio).toFixed(2) + " times slower to catch public transport than to drive";
-            }
-            else {
-                content = "It is " + (1.0/ratio).toFixed(2) + " times faster to catch public transport than to drive";
-            }
+            content = ratioText(event.feature.getProperty('ratio'));
         }
         else if (event.feature.getProperty('isDestination')) {
-            content = "Destination coordinates: " + event.feature.getProperty('location');
+            content = ratioText(event.feature.getProperty('ratio')) +
+                      ". Destination coordinates: " + event.feature.getProperty('location');
         }
         document.getElementById('info').textContent = content;
     });
