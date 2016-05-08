@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial import Voronoi
 
 def get_voronoi_map(points):
-    points = np.array(points)[:,:2]  # don't need the number of trips
+    points = np.array(points)
 
     if points.shape[0] > 4:
         vor = Voronoi(points)
