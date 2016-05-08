@@ -17,10 +17,18 @@ bounding_boxes = {"CBD":
                        "reuse_origins": False,
                        },
                   }
+bounding_boxes = {
+                  "All Sydney":
+                      {"minlat": -33.598618, "minlon": 150.750642,
+                       "maxlat": -34.086191, "maxlon": 151.331951,
+                       "weight": 2,
+                       "reuse_origins": False,
+                       },
+                  }
 
 map_resolution = 3  # About 1 km
 
-max_daily_requests = 100000
-requester_threads = 2
+max_daily_requests = 2500
+requester_threads = 1
 
-queue_size = 50  # If you make this too large, the times used can be in the past!
+queue_size = 10  # If you make this too large, the times used can be in the past!

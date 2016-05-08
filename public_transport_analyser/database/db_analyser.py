@@ -37,15 +37,50 @@ def count_trips():
         return trips
 
 
-def count_origins_with_no_dest():
+def delete_bad_routes():
     num_bad_origins = 0
 
     with pny.db_session:
         origins = pny.select(o for o in Origin)[:]
         for o in origins:
-            if len(o.destinations) == 0:
+            if len(o.destinations) <= 1:
                 num_bad_origins += 1
+                for d in o.destinations:
+                    for t in d.trips:
+                        t.delete()
+                    d.delete()
+                o.delete()
+
     return num_bad_origins
+
+
+def count_bad_routes():
+    num_bad_origins = 0
+
+    with pny.db_session:
+        origins = pny.select(o for o in Origin)[:]
+        for o in origins:
+            if len(o.destinations) <= 1:
+                num_bad_origins += 1
+
+    return num_bad_origins
+
+
+def origin_bench():
+    lonlats = []
+
+    with pny.db_session:
+        #origins = pny.select(o for o in Origin)[:]
+        origins = pny.select((o.location, pny.count(o.destinations)) for o in Origin)[:]
+
+
+        #for o in origins:
+        #    lat, lon = map(float, o.location.split(","))
+        #    lonlats.append((lon, lat, len(o.destinations)))
+
+    print(origins)
+    for i in origins:
+        print(i)#, len(i.destinations))
 
 
 def origin_stats():
@@ -101,13 +136,14 @@ def route_stats():
 
 def analyser():
     """
-    mess()
+    origin_bench()
+    #mess()
     """
     print("Number of origins: {}".format(count_origins()))
     print("Number of destinations: {}".format(count_destinations()))
     print("Number of trips: {}".format(count_trips()))
 
-    print("Number of bad origins: {}".format(count_origins_with_no_dest()))
+    print("Number of bad origins: {}".format(count_bad_routes()))
 
     max_dests, min_dests, avg_dests, max_route = origin_stats()
     print("Max destinations on a route: {} ({})".format(max_dests, max_route))

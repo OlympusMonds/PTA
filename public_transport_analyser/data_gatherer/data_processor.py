@@ -82,6 +82,7 @@ def save_to_db(route_info, duration, distance):
         d = Destination.get(location = dest, origin = o)
         if not d:
             d = Destination(location=dest, origin=o)
+        o.destinations.add(d)
 
         t = Trip(mode = route_info["mode"],
                  time = route_info["hour"],

@@ -72,7 +72,8 @@ def request_urls(max_daily_requests, bad_routes, url_queue, data_queue):
             time.sleep(request_rate)
 
         time_passed = (datetime.datetime.now() - start_time).total_seconds()
-        request_rate = (day_in_sec - time_passed) / (max_daily_requests - total_requests_today)
+        if not total_requests_today == max_daily_requests:
+            request_rate = (day_in_sec - time_passed) / (max_daily_requests - total_requests_today)
         logger.debug("Time passed today: {} seconds, request_rate: {} seconds".format(time_passed, request_rate))
 
         if time_passed >= day_in_sec:
