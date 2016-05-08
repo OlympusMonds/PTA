@@ -150,7 +150,7 @@ class FetchOrigin(Resource):
                 features.append(geojson.Feature(geometry=geojson.Polygon([points]),
                                                 properties=properties, ))
         except ValueError as ve:
-            logger.error("Voronoi function failed. Only sending destinations.")
+            logger.error("Voronoi function failed. Only sending destinations. Error: {}".format(ve))
 
         logger.info("GeoJSON built.")
         return geojson.FeatureCollection(features)
