@@ -17,9 +17,22 @@ def generate_routes(name, bounding_box, map_resolution, reuse_origins, url_queue
         if reuse_origins:
             # Get a random existing origin
             # TODO: this doesn't obey the bounding box
-            with pny.db_session:
-                origin = Origin.select_random(limit=1)[0]
-                o_lat, o_lon = origin.location.split(",")
+            for _ in range(retries):
+                try:
+                    logger.debug("Trying to access the DB for an origin")
+                    with pny.db_session:
+                        origin = Origin.select_random(limit=1)[0]
+                        o_lat, o_lon = origin.location.split(",")
+                    
+                    break
+                    logger.debug("DB access went OK.")
+
+                except pny.core.RollbackException:
+                    logger.error("DB access failed. Retrying...")
+            else:
+                logger.error("DB access really failed")
+                #TODO: deal with this error.
+
         else:
             # Get a random origin within the bounding box, and then round to the
             # map resolution.

@@ -22,7 +22,7 @@ bounding_boxes = {
                       {"minlat": -33.598618, "minlon": 150.750642,
                        "maxlat": -34.086191, "maxlon": 151.331951,
                        "weight": 2,
-                       "reuse_origins": False,
+                       "reuse_origins": True,
                        },
                   }
 

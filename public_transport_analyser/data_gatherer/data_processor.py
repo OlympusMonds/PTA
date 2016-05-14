@@ -68,28 +68,38 @@ def save_to_db(route_info, duration, distance):
 
     origin, dest = route_info["route"].split("_")
 
-    with pny.db_session:
-        """
-        Fetch the origin and dest from the DB, or create if they don't
-        exist. Once obtained, make a new trip between them storing the
-        results.
-        """
+    retries = 3
+    for _ in range(retries):
         try:
-            o = Origin[origin]
-        except pny.ObjectNotFound:
-            o = Origin(location=origin)
+            with pny.db_session:
+                """
+                Fetch the origin and dest from the DB, or create if they don't
+                exist. Once obtained, make a new trip between them storing the
+                results.
+                """
+                try:
+                    o = Origin[origin]
+                except pny.ObjectNotFound:
+                    o = Origin(location=origin)
 
-        d = Destination.get(location = dest, origin = o)
-        if not d:
-            d = Destination(location=dest, origin=o)
-        o.destinations.add(d)
+                d = Destination.get(location = dest, origin = o)
+                if not d:
+                    d = Destination(location=dest, origin=o)
+                o.destinations.add(d)
 
-        t = Trip(mode = route_info["mode"],
-                 time = route_info["hour"],
-                 duration = duration,
-                 distance = distance,
-                 destination = d)
-        d.trips.add(t)
+                t = Trip(mode = route_info["mode"],
+                         time = route_info["hour"],
+                         duration = duration,
+                         distance = distance,
+                         destination = d)
+                d.trips.add(t)
+
+            break  # DB went OK
+        except pny.core.RollbackException:
+            logger.error("DB dropped connection, retrying...")
+    else:
+        logger.error("DB failed big time")
+        # TODO: deal with this error.
 
     logger.info("saved route: {}, mode: {}, time: {}, duration: {}, distance: {}.".format(route_info["route"],
                                                                                           route_info["mode"],
