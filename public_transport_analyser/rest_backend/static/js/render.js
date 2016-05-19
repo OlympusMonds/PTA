@@ -67,7 +67,20 @@ function ratioText(ratio){
         return "It is " + (1.0/ratio).toFixed(2) + " times slower to catch public transport than to drive";
     }
     else {
-        return "It is " + (1.0/ratio).toFixed(2) + " times faster to catch public transport than to drive";
+        return "It is " + ratio.toFixed(2) + " times faster to catch public transport than to drive";
+    }
+}
+
+
+function avgRatioText(ratio){
+    if (ratio == -1) {
+        return "No data available."
+    }
+    else if (ratio < 1) {
+        return "It is on average " + (1.0/ratio).toFixed(2) + " times slower to catch public transport from here than to drive";
+    }
+    else {
+        return "It is on average " + ratio.toFixed(2) + " times faster to catch public transport from here than to drive";
     }
 }
 
@@ -112,6 +125,32 @@ function initMap() {
                 icon: origin_image,
             });
         }
+        else if (feature.getProperty('isOPoly')) {
+            var ratiocolour;
+            var ratio = feature.getProperty('ratio');
+            var opacity = 0.4;
+
+            if (ratio == -1) {
+                ratiocolour = rgbToHex(0, 0, 0);
+                opacity = 0.6;
+            }
+            else if (ratio <= 1.0) {
+                ratiocolour = rgbToHex(255, Math.round(ratio*255), Math.round(ratio*255));
+                opacity = 0.2 + (0.4 * (1.-ratio));
+            }
+            else {
+                ratio = 2.0;
+                ratiocolour = rgbToHex(Math.round((1-(ratio-1.))*255), Math.round((1-(ratio-1.))*255), 255);
+                opacity = 0.2 + (0.4 * (1-(ratio-1.)));
+            }
+
+            return /** @type {google.maps.Data.StyleOptions} */({
+                fillColor: ratiocolour,
+                strokeWeight: 1,
+                strokeOpacity: 0.05,
+                fillOpacity: opacity,
+            });
+        }
         else if (feature.getProperty('isPolygon')) {
             var ratiocolour;
             var ratio = feature.getProperty('ratio');
@@ -134,6 +173,7 @@ function initMap() {
             return /** @type {google.maps.Data.StyleOptions} */({
                 fillColor: ratiocolour,
                 strokeWeight: 1,
+                strokeOpacity: 0.05,
                 fillOpacity: opacity,
             });
         }
@@ -149,10 +189,13 @@ function initMap() {
     map.data.addListener('mouseover', function(event) {
         var content = "";
         if (event.feature.getProperty('isOrigin')) {
-            content = "Location: " + event.feature.getProperty('location');
+            content = "Start coordinates: " + event.feature.getProperty('location');
         }
         else if (event.feature.getProperty('isPolygon')) {
             content = ratioText(event.feature.getProperty('ratio'));
+        }
+        else if (event.feature.getProperty('isOPoly')) {
+            content = avgRatioText(event.feature.getProperty('ratio'));
         }
         else if (event.feature.getProperty('isDestination')) {
             content = ratioText(event.feature.getProperty('ratio')) +
@@ -177,6 +220,18 @@ function initMap() {
                 document.getElementById('info').textContent = "Loading failed";
             });
         }
+        else if (event.feature.getProperty('isOPoly')) {
+            origin = event.feature.getProperty('location');
+
+            // Load GeoJSON
+            var promise = loadGeoJson('/api/origin/' + origin + '/' + time);
+            promise.then(function (features) {
+                //document.getElementById('info').textContent = "Loading succeeded. Click on a flag to begin.";
+            });
+            promise.catch(function (error) {
+                document.getElementById('info').textContent = "Loading failed";
+            });
+        }    
         else {
             showOrigins();
         }

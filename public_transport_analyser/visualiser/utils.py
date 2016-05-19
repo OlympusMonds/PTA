@@ -2,7 +2,10 @@ import numpy as np
 from scipy.spatial import Voronoi
 
 def get_voronoi_map(points):
-    points = np.array(points)[:,:2]  # don't need the ratio
+    points = np.array(points, dtype=np.float32)
+
+    if points.shape[1] != 2:
+        points = points[:,:2]  # don't need the ratio
 
     if points.shape[0] > 4:
         vor = Voronoi(points)

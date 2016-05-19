@@ -105,6 +105,33 @@ def origin_stats():
     return max_dests, min_dests, avg_dests/float(count), max_route
 
 
+def avg_ratio():
+    ratios = []
+    with pny.db_session:
+        origins = pny.select(o for o in Origin)[:]
+        for o in origins:
+            for d in o.destinations:
+                pt_avg = []
+                driving = None
+                for t in d.trips:
+                    if t.mode == "transit":
+                        pt_avg.append(float(t.duration))
+                    else:
+                        driving = float(t.duration)
+
+                if pt_avg and driving:
+                    pt_avg = sum(pt_avg) / len(pt_avg)
+
+                    if pt_avg != 0:
+                        ratios.append(driving / pt_avg)
+                    else:
+                        print("  error: route {}_{} has an average transit duration of 0".format(o, d))
+                        for t in d.trips:
+                            print("    mode: {}, duration: {}, distance: {}".format(t.mode, t.duration, t.distance))
+
+    return ratios
+
+
 def route_stats():
     max_trips = -1
     min_trips = 1e6
@@ -134,9 +161,58 @@ def route_stats():
     return max_trips, min_trips, avg_trips/float(count), max_route, min_route
 
 
+def count_each_origins_destinations():
+    with pny.db_session:
+
+        #oc = pny.select((o, pny.avg(t.duration)) for o in Origin
+        ##                                    for d in o.destinations
+        #                                        for t in d.trips if t.mode == "transit")[:]
+
+        #dc = pny.select((d.origin, pny.avg(t.duration)) for d in Destination
+        #                for t in d.trips if t.mode == "transit").without_distinct()[:]
+
+        #dc2 = pny.select((d.id, d.origin, pny.avg(t.duration)) for d in Destination
+        #                 for t in d.trips if t.mode == "transit")[:]
+
+        origins = pny.select((
+                              d.origin.location,
+                              pny.avg(t.duration for t in d.trips if t.mode == "transit"),
+                              pny.avg(t.duration for t in d.trips if t.mode == "driving")
+                              )
+                              for d in Destination)[:]
+        print(len(origins))
+        origins = pny.select((
+                             o.location,
+                             pny.avg(t.duration for d in o.destinations for t in d.trips if t.mode == "driving"),
+                             pny.avg(t.duration for d in o.destinations for t in d.trips if t.mode == "transit")
+
+                         )
+                         for o in Origin
+                             )[:]
+        print(len(origins))
+
+    # pny.select((d.id, d.origin, pny.avg(t.duration))
+    #            for t in d.trips if t.mode == "transit"),
+    #
+    # pny.select((d.id, d.origin, t.duration)
+    #            for t in d.trips if t.mode == "driving")
+
+    #print(len(oc))
+    #print(len(dc))
+    #print(len(dc2))
+    print("Query")
+    fails = []
+    for i, o in enumerate(origins):
+        print(i, o)
+
+    print("\n".join(map(str, fails)))
+    # for a, b in sorted(dc, key=lambda x: x[0]):
+    #    print(a)
+
+
 def analyser():
-    """
-    origin_bench()
+
+    count_each_origins_destinations()
     #mess()
     """
     print("Number of origins: {}".format(count_origins()))
@@ -150,6 +226,11 @@ def analyser():
     print("Min destinations on a route: {}".format(min_dests))
     print("Avg destinations on a route: {}".format(avg_dests))
 
+    ratios = avg_ratio()
+    print("Avg ratio for all routes: {}".format(sum(ratios) / len(ratios)))
+
+    delete_bad_routes()
+    """
     """
     max_trips, min_trips, avg_trips, max_route, min_route = route_stats()
     print("Max trips on a route: {} ({})".format(max_trips, max_route))

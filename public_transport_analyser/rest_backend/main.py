@@ -5,7 +5,7 @@ from flask.ext.cache import Cache
 from flask_restful import Resource, Api
 import logging
 
-from public_transport_analyser.database.database import Origin, init
+from public_transport_analyser.database.database import Origin, Destination, init
 from public_transport_analyser.visualiser.utils import get_voronoi_map
 
 
@@ -35,7 +35,78 @@ def faq():
     return pta.send_static_file("faq.html")
 
 
+class FetchAllOriginsVor(Resource):
+    @cache.cached(timeout=300)
+    def get(self):
+        logger = logging.getLogger('PTA.flask.get_all_origins_voronoi')
+        logger.info("Start")
+
+        # Get info from DB
+        retrycount = 3
+        for _ in range(retrycount):
+            try:
+                logger.info("Fetch from DB")
+
+                with pny.db_session:
+                    origins = pny.select((
+                                          o.location,
+                                          pny.avg(t.duration for d in o.destinations for t in d.trips if
+                                                  t.mode == "driving"),
+                                          pny.avg(t.duration for d in o.destinations for t in d.trips if
+                                                  t.mode == "transit")
+                                          )
+                                         for o in Origin)[:]
+
+                logger.info("DB access went OK.")
+                break
+
+            except ValueError as ve:
+                properties = {"isOrigin": True,
+                              "location": "error! reload page."}
+                f = geojson.Feature(geometry=geojson.Point((151.2, -33.9)), properties=properties)
+                logger.info("DB fetch failed, returning error point.")
+                return geojson.FeatureCollection([f, ])
+
+            except pny.core.RollbackException as re:
+                logger.error("Bad DB hit. Retrying:\n{}".format(re))
+
+        else:
+            logger.error("DB failed bigtime.")
+            # TODO: deal with this error
+
+        logger.info("Preparing GeoJSON with Voronoi")
+        opoints = [o[0].split(",")[::-1] for o in origins]
+        features = []
+        # Plot the origin map
+        try:
+            regions, vertices = get_voronoi_map(opoints)
+
+            for i, region in enumerate(regions):
+                try:
+                    ratio = origins[i][1] / origins[i][2]
+                except Exception as e:
+                    print(e)
+                    ratio = -1
+
+                properties = {"isOPoly": True,
+                              "ratio": ratio,
+                              "location": origins[i][0]}
+                points = [(lon, lat) for lon, lat in vertices[region]]  # TODO: do some rounding to save bandwidth
+                points.append(points[0])  # close off the polygon
+
+                features.append(geojson.Feature(geometry=geojson.Polygon([points]),
+                                                properties=properties, ))
+        except ValueError as ve:
+            logger.error("Voronoi function failed. Only sending destinations. Error: {}".format(ve))
+        logger.info("GeoJSON built.")
+        return geojson.FeatureCollection(features)
+
+
+
 class FetchAllOrigins(Resource):
+    """
+    Deprecated
+    """
     @cache.cached(timeout=300)
     def get(self):
         logger = logging.getLogger('PTA.flask.get_all_origins')
@@ -174,11 +245,12 @@ class FetchOrigin(Resource):
         return geojson.FeatureCollection(features)
 
 
-api.add_resource(FetchAllOrigins, '/api/origins')
+api.add_resource(FetchAllOrigins, '/api/pointorigins')
+api.add_resource(FetchAllOriginsVor, '/api/origins')
 api.add_resource(FetchOrigin, '/api/origin/<string:origin>/<int:time>')
 
 init()  # Start up the DB
 
 if __name__ == "__main__":
-    pta.debug = False
+    pta.debug = True
     pta.run(host='0.0.0.0')
