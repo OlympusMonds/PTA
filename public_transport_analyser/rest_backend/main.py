@@ -178,12 +178,18 @@ class FetchOrigin(Resource):
                         dlat, dlon = map(float, d.location.split(","))
 
                         driving = -1
-                        transit = -1
+                        transittimes = []
                         for t in d.trips:
                             if t.mode == "driving":
                                 driving = t.duration
-                            elif t.time == time:
-                                transit = t.duration
+                            else:
+                                transittimes.append(float(t.duration))
+
+                        try:
+                            transit = sum(transittimes) / len(transittimes)
+                        except Exception as e:
+                            transit = -1
+                            logger.error("Unable to average origin {}. COmputer says:\n{}".format(o.location, e))
 
                         ratio = -1.0
                         if driving > 0 and transit > 0:
