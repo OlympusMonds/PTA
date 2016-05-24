@@ -1,0 +1,28 @@
+body {
+    font-family: "Lato", sans-serif;
+    font-weight: 300;
+    font-size: 2.0em;
+    color: #222;
+    margin: 4em 0;
+}
+h1 {
+    font-size: 2em;
+    font-weight: 400;
+    text-align: center;
+}
+h2 {
+    font-size: 1.5em;
+    font-weight: 400;
+    margin: 1em 0;
+}
+h3 {
+    font-size: 1.2em;
+    font-weight: 400;
+    margin: 2em 0 0.5em 0;
+
+}
+h4 {
+    font-size: 1em;
+    font-weight: 400;
+    margin: 2em 0 0.5em 0;
+}

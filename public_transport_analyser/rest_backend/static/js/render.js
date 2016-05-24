@@ -75,7 +75,7 @@ function initMap() {
     // Load GeoJSON
     var promise = loadGeoJson('/api/origins');
     promise.then(function (features) {
-        document.getElementById('info').textContent = "Loading succeeded. Click on a flag.";
+        document.getElementById('info').textContent = "Loading succeeded. Click anywhere to see the trips used to calculate the ratio.";
         map.data.toGeoJson(function (data) {
             origins = data;  // cache data
         });

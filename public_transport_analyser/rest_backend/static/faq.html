@@ -3,11 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <title>FAQ - Public Transport Analyser</title>
+
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,400,400italic" type="text/css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" type='text/css'>
+    <link rel="stylesheet" href="/static/css/faq.css" type='text/css'>
 </head>
 <body>
-<h1>Frequently asked questions</h1>
 
-<h2>What is this?</h2>
+<div class="container">
+    <h1>Public Transport or Drive?</h1>
+    <h2>Frequently asked questions</h2>
+
+    <div class="row">
+        <h3>What is this?</h3>
+        <p>A map of the ratio of travel times of driving versus public transport. Areas in red show places that take much longer to get out of via public transport compared to driving, while areas in blue show the opposite.</p>
+    </div>
+
+    <div class="row">
+        <h3>How does it work?</h3>
+        <p>Each chunk on the map has a starting point inside it. From that starting point, a number of random destinations were picked, and we asked Google how long it takes to get there using a car or public transport. For each trip, we calculate the ratio of the two trip methods, and then average out the ratio for each starting chunk.</p>
+
+        <p>You can see the starting point and destinations by clicking on a chunk in the map. The exact starting point and destination locations are shown, as well as the ratio of driving to public transport for each trip. Once you are done, click anywhere to go back the original map.</p>
+    </div>
+   
+    <div class="row">
+        <h3>How did you get this data?</h3>
+        <p>Google has a thing called the Maps Distance Matrix API, There is a data gathering worker that has been running which chooses random start and end points to fill in the map with more data.</p>
+        <p>Google offers a free trial of their service, which allowed for almost 600,000 trips to be recorded. Unfortunately that trial has expired, so the data gatherer is limited to 2500 requests per day.</p>
+    </div>
+
+    <div class="row">
+        <h3>Is the source code available?</h3>
+        <p>Yes, you can see it <a href="https://github.com/OlympusMonds/PTA">here</a></p>
+    </div>
+
+</div>
 
 </body>
 </html>
