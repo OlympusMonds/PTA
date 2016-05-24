@@ -66,8 +66,8 @@ function avgRatioText(ratio){
 
 function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 11,
-        center: {lat: -33.9, lng: 151.2},
+        zoom: 12,
+        center: {lat: -33.9, lng: 151.1},
         mapTypeControl: false,
         streetViewControl: false,
     });
