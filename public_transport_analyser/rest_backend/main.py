@@ -152,9 +152,9 @@ class FetchAllOrigins(Resource):
 
 
 class FetchOrigin(Resource):
-    def get(self, origin, time = 6):
+    def get(self, origin):
         logger = logging.getLogger('PTA.flask.get_origin')
-        logger.info("Get origin: {} at time: {}".format(origin, time))
+        logger.info("Get origin: {}".format(origin))
 
         destinations = []
 
@@ -253,7 +253,7 @@ class FetchOrigin(Resource):
 
 api.add_resource(FetchAllOrigins, '/api/pointorigins')
 api.add_resource(FetchAllOriginsVor, '/api/origins')
-api.add_resource(FetchOrigin, '/api/origin/<string:origin>/<int:time>')
+api.add_resource(FetchOrigin, '/api/origin/<string:origin>')
 
 init()  # Start up the DB
 

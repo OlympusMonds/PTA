@@ -2,29 +2,8 @@
  * Created by luke on 4/05/16.
  */
 
-// Make time slider
-$(function() {
-    var select = $( "#daytime" );
-    var slider = $( "<div id='slider'></div>" ).insertAfter( select ).slider({
-      min: 1,
-      max: 5,
-      range: "min",
-      value: select[ 0 ].selectedIndex + 1,
-      slide: function( event, ui ) {
-        select[ 0 ].selectedIndex = ui.value - 1;
-        time = $('#daytime option:selected').text();
-      }
-    });
-    $( "#daytime" ).change(function() {
-        slider.slider( "value", this.selectedIndex + 1 );
-        time = $('#daytime option:selected').text();
-    });
-  });
-
-
 var map;
 var origins;
-var time = 6;
 
 
 function rgbToHex(r, g, b) {
@@ -212,7 +191,7 @@ function initMap() {
             origin = event.feature.getProperty('location');
 
             // Load GeoJSON
-            var promise = loadGeoJson('/api/origin/' + origin + '/' + time);
+            var promise = loadGeoJson('/api/origin/' + origin);
             promise.then(function (features) {
                 //document.getElementById('info').textContent = "Loading succeeded. Click on a flag to begin.";
             });
@@ -224,7 +203,7 @@ function initMap() {
             origin = event.feature.getProperty('location');
 
             // Load GeoJSON
-            var promise = loadGeoJson('/api/origin/' + origin + '/' + time);
+            var promise = loadGeoJson('/api/origin/' + origin);
             promise.then(function (features) {
                 //document.getElementById('info').textContent = "Loading succeeded. Click on a flag to begin.";
             });
