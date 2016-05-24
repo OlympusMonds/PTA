@@ -5,6 +5,11 @@ body {
     color: #222;
     margin: 4em 0;
 }
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
 h1 {
     font-size: 2em;
     font-weight: 400;
@@ -26,3 +31,17 @@ h4 {
     font-weight: 400;
     margin: 2em 0 0.5em 0;
 }
+#map {
+    height: 100%;
+}
+#info-box {
+    background-color: white;
+    border: 1px solid black;
+    top: 30px;
+    width: 30%;
+    padding: 10px;
+    position: absolute;
+    left: 30px;
+    font-size: 1.0em;
+}
+

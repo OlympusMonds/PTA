@@ -152,7 +152,7 @@ function initMap() {
             return /** @type {google.maps.Data.StyleOptions} */({
                 fillColor: ratiocolour,
                 strokeWeight: 1,
-                strokeOpacity: 0.05,
+                strokeOpacity: 0.15,
                 fillOpacity: opacity,
             });
         }
